@@ -17,3 +17,6 @@ baml_client/type_builder.py
 baml_client/type_map.py
 baml_client/types.py
 baml_client/watchers.py
+
+# environment variables so that api keys are protected
+.env
