@@ -36,3 +36,5 @@ Commands:
 ```
 
 10. Please refer to the `machine_specifications.md` at the root dictionary of the project when you are about to make an edit or decisions where the OS and the hardware specifications such as the size of the RAM is important.
+11. As the main operating system where the project is developed on, and powershell is the default shell, please write your terminal command accordingly.
+12. 
