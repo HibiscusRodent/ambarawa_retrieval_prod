@@ -11,7 +11,7 @@ import io
 
 # misc libraries
 from loguru import logger
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 # for parallelizations
 from joblib import Parallel, delayed
