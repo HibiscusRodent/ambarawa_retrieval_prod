@@ -1,115 +1,149 @@
 // Learn more about clients at https://docs.boundaryml.com/docs/snippets/clients/overview
 
-// Using the new OpenAI Responses API for enhanced formatting
-client<llm> CustomGPT5 {
-  provider openai-responses
-  options {
-    model "gpt-5"
-    api_key env.OPENAI_API_KEY
-  }
-}
-
-client<llm> CustomGPT5Mini {
-  provider openai-responses
-  retry_policy Exponential
-  options {
-    model "gpt-5-mini"
-    api_key env.OPENAI_API_KEY
-  }
-}
-
-// Openai with chat completion
-client<llm> CustomGPT5Chat {
+client<llm> CustomGPT4o {
   provider openai
   options {
-    model "gpt-5"
+    model "gpt-4o"
     api_key env.OPENAI_API_KEY
   }
 }
 
-// Latest Anthropic Claude 4 models
-client<llm> CustomOpus4 {
+client<llm> CustomGPT4oMini {
+  provider openai
+  retry_policy Exponential
+  options {
+    model "gpt-4o-mini"
+    api_key env.OPENAI_API_KEY
+  }
+}
+
+client<llm> CustomSonnet {
   provider anthropic
   options {
-    model "claude-opus-4-1-20250805"
+    model "claude-3-5-sonnet-20241022"
     api_key env.ANTHROPIC_API_KEY
   }
 }
 
-client<llm> CustomSonnet4 {
-  provider anthropic
-  options {
-    model "claude-sonnet-4-20250514"
-    api_key env.ANTHROPIC_API_KEY
-  }
-}
 
 client<llm> CustomHaiku {
   provider anthropic
   retry_policy Constant
   options {
-    model "claude-3-5-haiku-20241022"
+    model "claude-3-haiku-20240307"
     api_key env.ANTHROPIC_API_KEY
   }
 }
 
-// Example Google AI client (uncomment to use)
-// client<llm> CustomGemini {
-//   provider google-ai
-//   options {
-//     model "gemini-2.5-pro"
-//     api_key env.GOOGLE_API_KEY
-//   }
-// }
+client<llm> VisionModelQwen25_24b {
+  provider "openai-generic"
+  retry_policy Constant
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "qwen/qwen2.5-vl-32b-instruct"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
 
-// Example AWS Bedrock client (uncomment to use)
-// client<llm> CustomBedrock {
-//   provider aws-bedrock
-//   options {
-//     model "anthropic.claude-sonnet-4-20250514-v1:0"
-//     region "us-east-1"
-//     // AWS credentials are auto-detected from env vars
-//   }
-// }
+client<llm> Gemma327B {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "google/gemma-3-27b-it"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+    headers {
+      "X-Title" "YOUR-TITLE" // Optional
+  }
+}}
 
-// Example Azure OpenAI client (uncomment to use)
-// client<llm> CustomAzure {
-//   provider azure-openai
-//   options {
-//     model "gpt-5"
-//     api_key env.AZURE_OPENAI_API_KEY
-//     base_url "https://MY_RESOURCE_NAME.openai.azure.com/openai/deployments/MY_DEPLOYMENT_ID"
-//     api_version "2024-10-01-preview"
-//   }
-// }
+client<llm> InternVL_78B {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "opengvlab/internvl3-78b"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
 
-// Example Vertex AI client (uncomment to use)
-// client<llm> CustomVertex {
-//   provider vertex-ai
-//   options {
-//     model "gemini-2.5-pro"
-//     location "us-central1"
-//     // Uses Google Cloud Application Default Credentials
-//   }
-// }
+// Free models
 
-// Example Ollama client for local models (uncomment to use)
-// client<llm> CustomOllama {
-//   provider openai-generic
-//   options {
-//     base_url "http://localhost:11434/v1"
-//     model "llama4"
-//     default_role "user" // Most local models prefer the user role
-//     // No API key needed for local Ollama
-//   }
-// }
+client<llm> Grok4FastFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "x-ai/grok-4-fast:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+client<llm> MistralSmall3_24bFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "mistralai/mistral-small-3.2-24b-instruct:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+client<llm> LLama4MaverickFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "meta-llama/llama-4-maverick:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+client<llm> Qwen2532bFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "qwen/qwen2.5-vl-32b-instruct:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+client<llm> Mistral31_24bFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "mistralai/mistral-small-3.1-24b-instruct:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+client<llm> Qwen25272bFree {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "qwen/qwen2.5-vl-72b-instruct:free"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
+// Client with fallbacks to free models
+client<llm> FreeLLMWithFallback {
+  provider fallback
+  options {
+    strategy [Qwen2532bFree, Qwen25272bFree, VisionModelQwen25_24b]
+  }
+}
 
 // https://docs.boundaryml.com/docs/snippets/clients/round-robin
 client<llm> CustomFast {
   provider round-robin
   options {
     // This will alternate between the two clients
-    strategy [CustomGPT5Mini, CustomHaiku]
+    strategy [CustomGPT4oMini, CustomHaiku]
   }
 }
 
@@ -118,13 +152,14 @@ client<llm> OpenaiFallback {
   provider fallback
   options {
     // This will try the clients in order until one succeeds
-    strategy [CustomGPT5Mini, CustomGPT5]
+    strategy [CustomGPT4oMini, CustomGPT4oMini]
   }
 }
 
 // https://docs.boundaryml.com/docs/snippets/clients/retry
 retry_policy Constant {
   max_retries 3
+  // Strategy is optional
   strategy {
     type constant_delay
     delay_ms 200
@@ -133,6 +168,7 @@ retry_policy Constant {
 
 retry_policy Exponential {
   max_retries 2
+  // Strategy is optional
   strategy {
     type exponential_backoff
     delay_ms 300
