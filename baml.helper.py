@@ -3,6 +3,9 @@ from image_processors import ImageProcessors, BookFolderPathData
 
 # from baml_py import Image, Collector  # Unused in this helper script
 from dotenv import load_dotenv
+import logfire
+
+logfire.configure()
 
 env_loader = load_dotenv()
 book_folder_path = r"sample_data\rak-0003_baris-005_buku-30"
