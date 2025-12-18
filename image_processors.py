@@ -19,7 +19,7 @@ from joblib import Parallel, delayed
 # rich traceback to show better debugging display
 from rich.traceback import install
 
-install()
+install() # activate pretty error printing using rich traceback
 
 
 class ImageProcessors:

@@ -20,3 +20,4 @@ baml_client/watchers.py
 
 # environment variables so that api keys are protected
 .env
+*/__pycache__/image_processors.cpython-313.pyc
