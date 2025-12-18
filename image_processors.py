@@ -11,7 +11,7 @@ import io
 
 # misc libraries
 from loguru import logger
-from typing import Literal
+from typing import Any, Literal, cast
 
 # for parallelizations
 from joblib import Parallel, delayed
@@ -199,8 +199,11 @@ class ImageProcessors:
         """
         logger.debug(f"Converting {len(image_paths)} image files to NumPy arrays...")
 
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._load_single_image)(path) for path in image_paths
+        results = cast(
+            list[np.ndarray],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._load_single_image)(path) for path in image_paths
+            ),
         )
         return results
 
@@ -301,8 +304,11 @@ class ImageProcessors:
         """
         logger.debug(f"Resizing {len(image_arrays)} image arrays...")
 
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._resize_single_image)(img) for img in image_arrays
+        results = cast(
+            list[np.ndarray],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._resize_single_image)(img) for img in image_arrays
+            ),
         )
         return results
 
@@ -330,8 +336,11 @@ class ImageProcessors:
         """
         logger.info(f"Converting {len(image_arrays)} images to Base64 encoding...")
 
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._image_array_to_base64)(img) for img in image_arrays
+        results = cast(
+            list[str],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._image_array_to_base64)(img) for img in image_arrays
+            ),
         )
 
         logger.success(f"Successfully converted {len(results)} images to Base64")
@@ -361,8 +370,11 @@ class ImageProcessors:
         """
         logger.info(f"Converting {len(image_arrays)} images to binary data...")
 
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._image_array_to_binary)(img) for img in image_arrays
+        results = cast(
+            list[bytes],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._image_array_to_binary)(img) for img in image_arrays
+            ),
         )
 
         logger.success(f"Successfully converted {len(results)} images to binary data")

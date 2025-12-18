@@ -9,10 +9,10 @@ dependencies = [
     "pillow>=12.0.0",
 ]
 
-[tool]
-
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+
+[tool]
