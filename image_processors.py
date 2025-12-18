@@ -13,6 +13,10 @@ from loguru import logger
 from typing import Literal, cast
 from pydantic import BaseModel, ConfigDict, Field
 
+import logfire
+import psutil
+import os
+
 # for parallelizations
 from joblib import Parallel, delayed
 
@@ -140,6 +144,12 @@ class ImageProcessors:
         # Normalize extensions to lowercase
         self.images_extensions = [ext.lower() for ext in self.images_extensions]
         self.pdf_extensions = [ext.lower() for ext in self.pdf_extensions]
+
+    @staticmethod
+    def _get_memory_usage_mb() -> float:
+        """Get current memory usage in megabytes (RSS)."""
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / (1024 * 1024)
 
     @property
     def supported_extensions(self) -> set[str]:
@@ -290,31 +300,65 @@ class ImageProcessors:
         Returns:
             A ProcessedBookData object containing IDs and optimized image data.
         """
-        file_names, file_paths = self.get_book_files(folder_data)
-        data_type = self.determine_book_data_type(file_names)
+        start_mem = self._get_memory_usage_mb()
+        with logfire.span(
+            "Processing book folder: {book_id}",
+            book_id=folder_data.book_id,
+            path=str(folder_data.path),
+            start_memory_mb=start_mem,
+        ) as span:
+            file_names, file_paths = self.get_book_files(folder_data)
+            data_type = self.determine_book_data_type(file_names)
 
-        # 1. Prepare flat list of processing sources
-        sources: list[Path | tuple[Path, int]] = []
-        if data_type == "pdf":
-            for path in file_paths:
-                if path.suffix.lower() in self.pdf_extensions:
-                    with fitz.open(path) as doc:
-                        sources.extend([(path, i) for i in range(len(doc))])
-        elif data_type == "images":
-            sources = cast(list[Path | tuple[Path, int]], file_paths)
-        else:
-            logger.warning(f"No processable files found for book {folder_data.book_id}")
-            return ProcessedBookData(
-                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            total_disk_size = sum(p.stat().st_size for p in file_paths)
+            after_files_mem = self._get_memory_usage_mb()
+
+            logfire.info(
+                "Files located",
+                count=len(file_paths),
+                data_type=data_type,
+                total_disk_size_bytes=total_disk_size,
+                memory_mb=after_files_mem,
             )
 
-        # 2. Parallel execution of the unified pipeline
-        logger.info(
-            f"Processing {len(sources)} items for book {folder_data.book_id}..."
-        )
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._process_single_source)(s) for s in sources
-        )
+            # 1. Prepare flat list of processing sources
+            sources: list[Path | tuple[Path, int]] = []
+            if data_type == "pdf":
+                for path in file_paths:
+                    if path.suffix.lower() in self.pdf_extensions:
+                        with fitz.open(path) as doc:
+                            sources.extend([(path, i) for i in range(len(doc))])
+            elif data_type == "images":
+                sources = cast(list[Path | tuple[Path, int]], file_paths)
+            else:
+                logfire.warn(
+                    "No processable files found for book {book_id}",
+                    book_id=folder_data.book_id,
+                )
+                logger.warning(
+                    f"No processable files found for book {folder_data.book_id}"
+                )
+                return ProcessedBookData(
+                    book_id=folder_data.book_id, base64_images=[], binary_images=[]
+                )
+
+            after_sources_mem = self._get_memory_usage_mb()
+            logfire.info(
+                "Sources prepared",
+                item_count=len(sources),
+                memory_mb=after_sources_mem,
+            )
+
+            # 2. Parallel execution of the unified pipeline
+            logger.info(
+                f"Processing {len(sources)} items for book {folder_data.book_id}..."
+            )
+            results = Parallel(n_jobs=self.n_jobs)(
+                delayed(self._process_single_source)(s) for s in sources
+            )
+
+            after_parallel_mem = self._get_memory_usage_mb()
+            logfire.info("Parallel processing complete", memory_mb=after_parallel_mem)
 
         if not results:
             return ProcessedBookData(
@@ -324,6 +368,22 @@ class ImageProcessors:
         # 3. Unzip results into separate lists
         # zip(*results) returns two tuples, we convert them to lists
         base64_images, binary_images = map(list, zip(*results))
+
+        total_base64_size = sum(len(s) for s in base64_images)
+        total_binary_size = sum(len(b) for b in binary_images)
+        end_mem = self._get_memory_usage_mb()
+
+        logfire.info(
+            "Processing complete",
+            image_count=len(base64_images),
+            total_base64_size_bytes=total_base64_size,
+            total_binary_size_bytes=total_binary_size,
+            memory_mb=end_mem,
+        )
+
+        span.set_attribute("final_memory_mb", end_mem)
+        span.set_attribute("total_base64_size", total_base64_size)
+        span.set_attribute("total_binary_size", total_binary_size)
 
         logger.success(
             f"Successfully processed {len(base64_images)} images for {folder_data.book_id}"
