@@ -1,4 +1,19 @@
 # lockfiles from uv
+uv.lock
+uv.lock
 
-uv.lock
-uv.lock
+# baml_client
+baml_client/__init__.py
+baml_client/async_client.py
+baml_client/config.py
+baml_client/globals.py
+baml_client/inlinedbaml.py
+baml_client/parser.py
+baml_client/runtime.py
+baml_client/stream_types.py
+baml_client/sync_client.py
+baml_client/tracing.py
+baml_client/type_builder.py
+baml_client/type_map.py
+baml_client/types.py
+baml_client/watchers.py
