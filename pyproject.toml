@@ -15,9 +15,14 @@ dependencies = [
 ]
 
 [tool.pyrefly]
+python-version = "3.13"
+python-interpreter-path = ".venv/Scripts/python"
+
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+
+project-excludes = ["**/node_modules", "**/__pycache__", "**/*venv/**", "**/.[!/.]*/**"]
 
 [tool]

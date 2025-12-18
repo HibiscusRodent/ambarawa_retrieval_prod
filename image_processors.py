@@ -12,6 +12,7 @@ import io
 # misc libraries
 from loguru import logger
 from typing import Literal, cast
+from pydantic import BaseModel, ConfigDict, Field
 
 # for parallelizations
 from joblib import Parallel, delayed
@@ -19,7 +20,56 @@ from joblib import Parallel, delayed
 # rich traceback to show better debugging display
 from rich.traceback import install
 
-install() # activate pretty error printing using rich traceback
+install()  # activate pretty error printing using rich traceback
+
+
+class BookFolderPathData(BaseModel):
+    """
+    Pydantic model representing the input data required for book folder processing.
+
+    This class encapsulates the filesystem path to a book folder and provides
+    utility properties to extract book metadata, such as the book ID.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    path: Path = Field(
+        ..., description="The absolute or relative Path object pointing to the book folder."
+    )
+
+    @property
+    def book_id(self) -> str:
+        """
+        Extracts and returns the book ID based on the folder name.
+
+        Returns:
+            str: The name of the directory which serves as the unique identifier for the book.
+        """
+        return self.path.name
+
+
+class ProcessedBookData(BaseModel):
+    """
+    Pydantic model representing the output data after processing a book folder.
+
+    This class holds the results of image processing, including various data formats
+    (base64 and binary) suitable for different downstream tasks like vector database
+    insertion or LLM inference.
+    """
+
+    book_id: str = Field(
+        ..., description="The unique identifier of the book, typically the folder name."
+    )
+    base64_images: list[str] = Field(
+        ...,
+        description="A list of base64-encoded strings representing the processed images. "
+        "These are optimized for storage in columnar formats like LanceDB.",
+    )
+    binary_images: list[bytes] = Field(
+        ...,
+        description="A list of raw binary bytes representing the processed images. "
+        "These are optimized for direct usage with AI model APIs.",
+    )
 
 
 class ImageProcessors:
@@ -96,12 +146,14 @@ class ImageProcessors:
         """Get all supported file extensions."""
         return set(self.images_extensions + self.pdf_extensions)
 
-    def get_book_files(self, book_folder: str | Path) -> tuple[list[str], list[Path]]:
+    def get_book_files(
+        self, folder_data: BookFolderPathData
+    ) -> tuple[list[str], list[Path]]:
         """
         Get all supported files within a given directory.
 
         Args:
-            book_folder: Path to the book directory
+            folder_data: Data object containing the path to the book directory
 
         Returns:
             A tuple containing a list of file names and paths.
@@ -110,9 +162,9 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logger.info(f"Getting a list of books from {book_folder}")
+        logger.info(f"Getting a list of books from {folder_data.path}")
 
-        directory = Path(book_folder)
+        directory = folder_data.path
         try:
             directory = directory.resolve(strict=True)
         except FileNotFoundError:
@@ -139,18 +191,17 @@ class ImageProcessors:
         logger.info(f"Found {len(matched_paths)} supported files in {directory}")
         return file_names, matched_paths
 
-    @staticmethod
-    def get_book_id(book_folder: str | Path) -> str:
+    def get_book_id(self, folder_data: BookFolderPathData) -> str:
         """
-        Get the book ID from a given book folder path.
+        Get the book ID from a given book folder path data.
 
         Args:
-            book_folder: Path to the book directory
+            folder_data: Data object containing the path to the book directory
 
         Returns:
             A string representing the book ID (folder name).
         """
-        return Path(book_folder).name
+        return folder_data.book_id
 
     def determine_book_data_type(
         self, file_names: list[str]
@@ -382,27 +433,31 @@ class ImageProcessors:
         logger.success(f"Successfully converted {len(results)} images to binary data")
         return results
 
-    def process_book_folder(
-        self, book_folder: str | Path
-    ) -> tuple[list[str], list[bytes]]:
+    def process_book_folder(self, folder_data: BookFolderPathData) -> ProcessedBookData:
         """
         End-to-end processing of images from a book folder.
 
         Args:
-            book_folder: Path to the book directory
+            folder_data: Data object containing the path to the book directory
 
         Returns:
-            A tuple containing:
-            - base64_images: List of base64-encoded strings. Meant to be used for uploading to a vector database namely the lance columnar format.
-            - binary_images: List of bytes objects. Meant to be used for uploading to LLM client for inference tasks.
+            A ProcessedBookData object containing:
+            - book_id: The ID of the book.
+            - base64_images: List of base64-encoded strings.
+            - binary_images: List of bytes objects.
         """
-        file_names, file_paths = self.get_book_files(book_folder)
+        file_names, file_paths = self.get_book_files(folder_data)
         image_arrays = self.get_image_arrays(file_names, file_paths)
         resized_arrays = self.resize_image_arrays(image_arrays)
 
         base64_images = self.image_arrays_to_base64(resized_arrays)
         binary_images = self.image_arrays_to_binary(resized_arrays)
-        return base64_images, binary_images
+
+        return ProcessedBookData(
+            book_id=folder_data.book_id,
+            base64_images=base64_images,
+            binary_images=binary_images,
+        )
 
 
 def main() -> None:
