@@ -68,6 +68,16 @@ client<llm> InternVL_78B {
   }
 }
 
+client<llm> THUDM_GLM_4_1V_9B_Thinking {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "thudm/glm-4.1v-9b-thinking"
+    api_key env.OPENROUTER_KEY_PROD
+    temperature 0.8
+  }
+}
+
 // Free models
 
 client<llm> Grok4FastFree {
