@@ -25,10 +25,12 @@ install()
 class ImageProcessors:
     """
     A class for processing images and PDFs, including loading, resizing,
-    and converting to various formats (numpy arrays, base64, binary).
+    and converting to various formats (numpy arrays, base64, binary). Some of the key functions within the class:
+    1. end-to-end processing of images from a book folder: taking in a path to a book folder and returning their id, base64 images, and binary images
+    2. loading images and PDFs
+    3. resizing images
+    4. converting images to base64 and binary data
 
-    All configuration is managed through instance attributes, eliminating
-    the need for a separate configuration schema.
     """
 
     def __init__(
@@ -391,8 +393,8 @@ class ImageProcessors:
 
         Returns:
             A tuple containing:
-            - base64_images: List of base64-encoded strings
-            - binary_images: List of bytes objects
+            - base64_images: List of base64-encoded strings. Meant to be used for uploading to a vector database namely the lance columnar format.
+            - binary_images: List of bytes objects. Meant to be used for uploading to LLM client for inference tasks.
         """
         file_names, file_paths = self.get_book_files(book_folder)
         image_arrays = self.get_image_arrays(file_names, file_paths)
