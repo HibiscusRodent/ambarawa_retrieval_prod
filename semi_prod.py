@@ -108,13 +108,27 @@ raw_analysis_json_path = os.path.join(book_output_folder, f"{book_id}_raw_analys
 with open(raw_analysis_json_path, "w", encoding="utf-8") as json_file:
     json_file.write(bookRawAnalysis.model_dump_json(indent=4, ensure_ascii=False))
     
-    
+
+# get bookContentHints
+book_content_hints = b.GetBookContentHints(
+    MultiImages=baml_images,
+    bookId=book_id,
+    RawVisualNote=bookRawAnalysis.model_dump_json()
+)
+
+## save the BookContentHints as json
+book_content_hints_json_path = os.path.join(book_output_folder, f"{book_id}_book_content_hints.json")
+with open(book_content_hints_json_path, "w", encoding="utf-8") as json_file:
+    json_file.write(book_content_hints.model_dump_json(indent=4, ensure_ascii=False))
+
+
 # get bookMainData
 book_main_data = b.GetBookMainData(
     MultiImages=baml_images,
     bookId=book_id,
     RawVisualNote=bookRawAnalysis.model_dump_json()
 )
+
 # save the BookMainData as json
 book_main_data_json_path = os.path.join(book_output_folder, f"{book_id}_book_main_data.json")
 with open(book_main_data_json_path, "w", encoding="utf-8") as json_file:
@@ -128,3 +142,4 @@ data_to_ingest = {
     "book_condition_data": book_condition_data.model_dump(),
     "book_main_data": book_main_data.model_dump()
 }
+
