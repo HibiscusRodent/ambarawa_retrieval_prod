@@ -14,7 +14,7 @@ from baml_client.types import BookConditionData, BookContentHints, BookMainData,
 from dotenv import load_dotenv
 env_loader: bool = load_dotenv()
 
-sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
+sample_book_folder_path =  "sample_data/rak-0018_baris-002_buku-12"
 
 # the data will be saved into this folder path in the form of images, and json files
 output_folder_path = "data/output_book_data"

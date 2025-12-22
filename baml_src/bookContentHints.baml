@@ -62,7 +62,7 @@ class BookContentHints {
 }
 
 function GetBookContentHints(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookContentHints {
-    client "FreeLLMWithFallback"
+    client "Gemini20FlashLite"
     prompt #"
         You are an expert literary analyst and librarian specializing in content classification and metadata extraction. Your role is to perform a thorough, step-by-step analysis of book content to extract meaningful insights about its nature, themes, and classification.
 

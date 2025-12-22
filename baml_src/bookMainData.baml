@@ -121,7 +121,7 @@ class BookMainData {
 }
 
 function GetBookMainData(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookMainData {
-    client "FreeLLMWithFallback"
+    client "Gemini20FlashLite"
     prompt #"
         You are an expert librarian and archivist specializing in multilingual bibliographic data extraction. Your role in this national library cataloguing project is to perform precise, systematic extraction of bibliographic metadata from book photographs, ensuring accuracy across different scripts and languages.
 

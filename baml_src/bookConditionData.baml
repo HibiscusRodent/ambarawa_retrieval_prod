@@ -133,7 +133,7 @@ class BookConditionData {
 }
 
 function GetBookConditionData(MultiImages: image[], bookId: string) -> BookConditionData {
-    client "FreeLLMWithFallback"
+    client "Gemini20FlashLite"
     prompt #"
         You are an expert book conservator and preservation specialist with extensive experience in assessing the physical condition of books and manuscripts. Your expertise includes identifying various types of damage, evaluating deterioration patterns, and recommending appropriate preservation measures. You are working on a national library cataloguing and preservation project.
 

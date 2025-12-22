@@ -52,3 +52,6 @@ data/lance_db_semi_prod/active_table.lance/_versions/1.manifest
 data/output_book_data/rak-0003_baris-005_buku-30/image_001.jpg
 data/output_book_data/rak-0003_baris-005_buku-30/image_002.jpg
 data/output_book_data/rak-0003_baris-005_buku-30/image_003.jpg
+
+data/output_book_data
+sample_data

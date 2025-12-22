@@ -14,7 +14,7 @@ class RawAnalysis {
     }
 
 function GetBookrawVisual(MultiImages: image[], bookId: string) -> RawAnalysis {
-    client "FreeLLMWithFallback"
+    client "Gemini20FlashLite"
     prompt #"
         You are an expert librarian, and archivist. Your daily tasks is cataloging books, based on photos gathered by the field workers that visits libraries across the country. Your job in the team is to process the initial photos, and jot down in extreme detail, what each photo shows. This will be useful for other team members that will come after you, as they might not have access to the books directly or its photos, and therefore will rely on your detailed description to understand and catalogue the book.
 
