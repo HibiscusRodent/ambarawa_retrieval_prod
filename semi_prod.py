@@ -2,6 +2,8 @@ import os
 
 import lancedb
 import pydantic as pydantic
+import pyarrow as pa
+
 from pydantic_to_pyarrow import get_pyarrow_schema
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -15,19 +17,23 @@ output_folder_path = "data/output_book_data"
 os.makedirs(output_folder_path, exist_ok=True)
 
 # initialize the necessary configs for lancedb's tables
+## turn each of the individual data models into arrow schemas
+raw_analysis_pa_schema = get_pyarrow_schema(RawAnalysis)
+book_condition_data_pa_schema = get_pyarrow_schema(BookConditionData)
+book_content_hints_pa_schema = get_pyarrow_schema(BookContentHints)
+book_main_data_pa_schema = get_pyarrow_schema(BookMainData)
+book_pub_and_dist_details_pa_schema = get_pyarrow_schema(BookPubAndDistDetails)
 
-## initialize the full data model
-class fullDataModel(pydantic.BaseModel):
-    book_id: str
-    images_data: list[bytes]
-    raw_analysis: RawAnalysis
-    book_condition_data: BookConditionData
-    book_content_hints: BookContentHints
-    book_main_data: BookMainData
-    book_pub_and_dist_details: BookPubAndDistDetails
-    
-## turn the pydantic data model into an arrow schema
-full_data_model_pa_schema = get_pyarrow_schema(fullDataModel)
+## compile them into a full arrow schema
+full_data_model_pa_schema = pa.schema([
+    ("book_id", pa.string()),
+    ("images_data", pa.list_(pa.binary())),
+    ("raw_analysis", raw_analysis_pa_schema),
+    ("book_condition_data", book_condition_data_pa_schema),
+    ("book_content_hints", book_content_hints_pa_schema),
+    ("book_main_data", book_main_data_pa_schema),
+    ("book_pub_and_dist_details", book_pub_and_dist_details_pa_schema)
+])
 
 ## initialized the local lancedb connection
 uri = "data/lance_db_semi_prod" # or the remote instances hosted by the lancedb cloud
