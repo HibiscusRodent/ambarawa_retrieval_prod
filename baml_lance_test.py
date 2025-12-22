@@ -1,5 +1,6 @@
 import lancedb
 from lancedb.pydantic import LanceModel
+import polars as pl
 from pathlib import Path
 
 import pyarrow as pa
@@ -46,4 +47,6 @@ print(table.schema)
 print("Adding BookConditionData to LanceDB...")
 table.add([bookConditionData.model_dump()])
 
-print(table.head())
+print("Turning the table into a Polars DataFrame...")
+polars_df = table.to_polars().lazy().collect()
+print(polars_df)

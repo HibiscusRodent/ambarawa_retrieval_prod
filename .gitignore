@@ -41,3 +41,9 @@ ex_lancedb/adventurers.lance/data/00110010101111000111110123b8ce4b5fbff0a2e696f6
 ex_lancedb/adventurers.lance/data/0111100001110010111001108b53204d47a54f05c02f2b631b.lance
 lance_db_test/BookConditionData.lance/_transactions/0-d120ed84-e318-4e0c-84c2-52df2c071cfa.txn
 lance_db_test/BookConditionData.lance/_versions/1.manifest
+lance_db_test/BookConditionData.lance/_transactions/5-07b6543f-8928-48af-a9d1-b3d2ace8ad6c.txn
+lance_db_test/BookConditionData.lance/_transactions/6-b90793d3-ba52-4942-b0cb-ea383793ec79.txn
+lance_db_test/BookConditionData.lance/_versions/6.manifest
+lance_db_test/BookConditionData.lance/_versions/7.manifest
+lance_db_test/BookConditionData.lance/data/010010100101011101000111e7ef3d48509c8cbab9c0035f80.lance
+lance_db_test/BookConditionData.lance/data/0111111001100011001001102704a74faf9700327aa49977bb.lance
