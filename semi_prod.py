@@ -83,21 +83,48 @@ for filename in os.listdir(book_output_folder):
         
 ### write the binary images into the folder
 for idx, img_data in enumerate(binary_images):
-    img_file_path = os.path.join(book_output_folder, f"image_{idx+1:03d}.jpg")
+    img_file_path = os.path.join(book_output_folder, f"{book_id}_img_{idx+1:03d}.jpg")
     with open(img_file_path, "wb") as img_file:
         img_file.write(img_data)
 
-# begin the BAML data processings
+# begin the BAML data processings for book condition data
 book_condition_data = b.GetBookConditionData(
     MultiImages=baml_images,
     bookId=book_id
 )
 
 # save the BookConditionData as json
-book_condition_data_json_path = os.path.join(book_output_folder, "book_condition_data.json")
+book_condition_data_json_path = os.path.join(book_output_folder, f"{book_id}_book_condition_data.json")
 with open(book_condition_data_json_path, "w", encoding="utf-8") as json_file:
     json_file.write(book_condition_data.model_dump_json(indent=4, ensure_ascii=False))
 
+bookRawAnalysis = b.GetBookrawVisual(
+    MultiImages=baml_images,
+    bookId=book_id
+)
 
+# save the RawAnalysis as json
+raw_analysis_json_path = os.path.join(book_output_folder, f"{book_id}_raw_analysis.json")
+with open(raw_analysis_json_path, "w", encoding="utf-8") as json_file:
+    json_file.write(bookRawAnalysis.model_dump_json(indent=4, ensure_ascii=False))
+    
+    
+# get bookMainData
+book_main_data = b.GetBookMainData(
+    MultiImages=baml_images,
+    bookId=book_id,
+    RawVisualNote=bookRawAnalysis.model_dump_json()
+)
+# save the BookMainData as json
+book_main_data_json_path = os.path.join(book_output_folder, f"{book_id}_book_main_data.json")
+with open(book_main_data_json_path, "w", encoding="utf-8") as json_file:
+    json_file.write(book_main_data.model_dump_json(indent=4, ensure_ascii=False))
 
-
+# data to be ingested into the lance db
+data_to_ingest = {
+    "book_id": book_id,
+    "images_data": binary_images,
+    "raw_analysis": bookRawAnalysis.model_dump(),
+    "book_condition_data": book_condition_data.model_dump(),
+    "book_main_data": book_main_data.model_dump()
+}
