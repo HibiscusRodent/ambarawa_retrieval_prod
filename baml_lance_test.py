@@ -36,8 +36,12 @@ bookConditionData_pa_schema = get_pyarrow_schema(BookConditionData)
 # assuming that theb "BookConditionData" table already exists in the database
 # if not, you can create it using db.create_table method
 
+print("Opening BookConditionData table...")
 table = db.open_table("BookConditionData")
 print(table.schema)
 
-# LanceDB's add() method expects a list of items, not a single object
-table.add([bookConditionData])
+# Convert Pydantic model to dictionary before adding to LanceDB
+# LanceDB's add() method expects a list of dictionaries
+
+print("Adding BookConditionData to LanceDB...")
+table.add([bookConditionData.model_dump()])
