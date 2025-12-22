@@ -39,5 +39,5 @@ bookConditionData_pa_schema = get_pyarrow_schema(BookConditionData)
 table = db.open_table("BookConditionData")
 print(table.schema)
 
-table.add(bookConditionData)
-    
+# LanceDB's add() method expects a list of items, not a single object
+table.add([bookConditionData])
