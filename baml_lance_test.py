@@ -8,7 +8,7 @@ from pydantic_to_pyarrow import get_pyarrow_schema
 
 from image_processors import ImageProcessors, BookFolderPathData
 from baml_client.sync_client import b
-from baml_client.types import PhysicalObservation, ConditionAnalysis, PrintTypeAnalysis, BookConditionEnum, BookPrintTypeEnum, BookConditionData
+from baml_client.types import BookConditionData
 
 from dotenv import load_dotenv
 env_loader = load_dotenv()
@@ -33,7 +33,7 @@ bookConditionData = b.GetBookConditionData(
     
 bookConditionData_pa_schema = get_pyarrow_schema(BookConditionData)
 
-# assuming that theb "BookConditionData" table already exists in the database
+# assuming that the "BookConditionData" table already exists in the database
 # if not, you can create it using db.create_table method
 
 print("Opening BookConditionData table...")
@@ -45,3 +45,5 @@ print(table.schema)
 
 print("Adding BookConditionData to LanceDB...")
 table.add([bookConditionData.model_dump()])
+
+print(table.head())
