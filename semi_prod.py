@@ -133,6 +133,19 @@ book_main_data = b.GetBookMainData(
 book_main_data_json_path = os.path.join(book_output_folder, f"{book_id}_book_main_data.json")
 with open(book_main_data_json_path, "w", encoding="utf-8") as json_file:
     json_file.write(book_main_data.model_dump_json(indent=4, ensure_ascii=False))
+    
+    
+# get bookPubAndDistDetails
+book_pub_and_dist_details = b.GetBookPublisherData(
+    MultiImages=baml_images,
+    bookId=book_id,
+    RawVisualNote=bookRawAnalysis.model_dump_json()
+)
+
+## save the BookPubAndDistDetails as json
+book_pub_and_dist_details_json_path = os.path.join(book_output_folder, f"{book_id}_book_pub_and_dist_details.json")
+with open(book_pub_and_dist_details_json_path, "w", encoding="utf-8") as json_file:
+    json_file.write(book_pub_and_dist_details.model_dump_json(indent=4, ensure_ascii=False))
 
 # data to be ingested into the lance db
 data_to_ingest = {
@@ -140,6 +153,7 @@ data_to_ingest = {
     "images_data": binary_images,
     "raw_analysis": bookRawAnalysis.model_dump(),
     "book_condition_data": book_condition_data.model_dump(),
-    "book_main_data": book_main_data.model_dump()
+    "book_main_data": book_main_data.model_dump(),
+    "book_content_hints": book_content_hints.model_dump()
 }
 
