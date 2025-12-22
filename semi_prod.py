@@ -10,6 +10,9 @@ from image_processors import ImageProcessors, BookFolderPathData
 from baml_client.sync_client import b
 from baml_client.types import BookConditionData, BookContentHints, BookMainData, BookPubAndDistDetails, RawAnalysis
 
+from dotenv import load_dotenv
+env_loader = load_dotenv()
+
 sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
 
 # the data will be saved into this folder path in the form of images, and json files
@@ -50,7 +53,10 @@ full_data_model_pa_schema = pa.schema([
 ## initialized the local lancedb connection
 uri = "data/lance_db_semi_prod" # or the remote instances hosted by the lancedb cloud
 db = lancedb.connect(uri)
-active_tbl = db.create_table("active_table", schema=full_data_model_pa_schema) # make sure that the overwrite mode is off to avoid data loss
+
+# make sure that the overwrite mode is off to avoid data loss
+# if the table has not been created yet, uncomment the following line to create it
+# active_tbl = db.create_table("active_table", schema=full_data_model_pa_schema)
 
 
 # initialize the image processors so that it have the necessary config initialized
@@ -69,16 +75,29 @@ book_output_folder = os.path.join(output_folder_path, book_id)
 os.makedirs(book_output_folder, exist_ok=True)
 
 ## save the binary images into the output folder path
-# Clear existing images in the folder to ensure overwrite
+### first, clear existing images in the folder to ensure overwrite
 for filename in os.listdir(book_output_folder):
     file_path = os.path.join(book_output_folder, filename)
     if os.path.isfile(file_path):
         os.unlink(file_path)
-
+        
+### write the binary images into the folder
 for idx, img_data in enumerate(binary_images):
     img_file_path = os.path.join(book_output_folder, f"image_{idx+1:03d}.jpg")
     with open(img_file_path, "wb") as img_file:
         img_file.write(img_data)
+
+# begin the BAML data processings
+book_condition_data = b.GetBookConditionData(
+    MultiImages=baml_images,
+    bookId=book_id
+)
+
+# save the BookConditionData as json
+book_condition_data_json_path = os.path.join(book_output_folder, "book_condition_data.json")
+with open(book_condition_data_json_path, "w", encoding="utf-8") as json_file:
+    json_file.write(book_condition_data.model_dump_json(indent=4, ensure_ascii=False))
+
 
 
 

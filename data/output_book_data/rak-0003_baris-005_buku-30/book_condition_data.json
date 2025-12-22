@@ -1,0 +1,73 @@
+{
+    "physicalObservations": [
+        {
+            "imageNumber": 1,
+            "bookComponent": "front cover",
+            "observedFeatures": [
+                "Discoloration: The cover has a beige or light yellow hue, suggesting age-related yellowing.",
+                "Fading: The graphic illustration and text appear slightly faded, consistent with aging.",
+                "Surface condition: The cover shows minor scuffing and some spotting, possibly from handling or environmental exposure.",
+                "Structural integrity: There are no visible tears, creases, or warping.",
+                "Corner condition: Corners appear slightly rounded but intact.",
+                "Edge condition: Edges are slightly worn but not frayed or chipped.",
+                "Print/image quality: The illustration and text are clear and legible, though slightly faded."
+            ],
+            "severityLevel": "minor",
+            "readabilityImpact": "slight impact"
+        },
+        {
+            "imageNumber": 1,
+            "bookComponent": "spine",
+            "observedFeatures": [
+                "Not visible in this image."
+            ],
+            "severityLevel": "none",
+            "readabilityImpact": "none"
+        },
+        {
+            "imageNumber": 2,
+            "bookComponent": "pages",
+            "observedFeatures": [
+                "Page color: The pages appear slightly yellowed, indicative of age-related oxidation.",
+                "Page brittleness indicators: The edges show minimal brittleness, which is typical for older books.",
+                "Stains or spots: There are small stains or marks, particularly near the edges, suggesting some environmental exposure.",
+                "Text legibility: Text is clear and legible throughout.",
+                "Page attachment to binding: The pages are clean and intact, with no visible signs of detachment."
+            ],
+            "severityLevel": "minor",
+            "readabilityImpact": "no impact"
+        },
+        {
+            "imageNumber": 3,
+            "bookComponent": "pages",
+            "observedFeatures": [
+                "Page color: The pages are consistent in coloration, showing the same slight yellowing as seen in Image 2.",
+                "Page brittleness indicators: Similar minimal brittleness is observed at the edges.",
+                "Stains or spots: No significant stains or spots are visible, indicating a cleaner interior compared to the edges.",
+                "Text legibility: Text remains clear and legible.",
+                "Page attachment to binding: The pages are clean and intact, with no visible signs of detachment."
+            ],
+            "severityLevel": "minor",
+            "readabilityImpact": "no impact"
+        }
+    ],
+    "conditionAnalysis": {
+        "overallAssessment": "The book shows signs of age and moderate handling, with minor discoloration, slight fading, and minimal wear. The structural integrity of the cover and pages is mostly intact, with no significant damage affecting usability. The text remains clear and legible, and the book's content is fully accessible. The primary indicators of age include yellowing of the cover and pages, as well as minor scuffing and edge wear.",
+        "conditionReasoning": "The book is classified as 'CUKUP_BAIK' (Good) due to the following factors: \n\n1. **Age-related discoloration**: The yellowing of the cover and pages is typical for books of a certain age but does not indicate severe deterioration.\n2. **Fading**: The text and illustration on the cover are faded, but this is consistent with aging and does not affect legibility.\n3. **Structural integrity**: The cover and pages show minimal wear, with no tears, warping, or significant damage to structural components.\n4. **Readability**: The text on all visible pages is clear and legible, indicating no loss of content.\n5. **Comparison with enum criteria**: The book fits the 'CUKUP_BAIK' category as it shows noticeable wear but no major defects, and the text is perfectly readable. The pages are clean and intact, and the colors are slightly faded but not to the extent of obscuring information.\n\nThere are no edge cases or ambiguities in the classification, as the observed damage is consistently minor with no signs of extensive wear or functionality issues.",
+        "preservationUrgency": "routine care"
+    },
+    "printTypeAnalysis": {
+        "coverMaterial": "flexible card stock",
+        "bindingType": "perfect binding (glued)",
+        "printQualityIndicators": [
+            "The cover is made of flexible card stock, which is characteristic of paperback books.",
+            "The binding appears to be a glued perfect binding, commonly used in mass-market paperbacks.",
+            "The print quality is consistent with commercial printing standards, showing even ink distribution and clear text.",
+            "The pages are of standard paper quality, without any signs of being plain copier paper or uneven print.",
+            "There are no photocopy artifacts or low-quality reproduction indicators."
+        ],
+        "printTypeReasoning": "The book is classified as 'pt2: The book has a soft cover' based on the following observations:\n\n1. **Cover material**: The front cover appears to be made of flexible card stock, which is typical for paperback books.\n2. **Binding type**: The binding is consistent with perfect binding (glued), a common binding method for paperbacks.\n3. **Print quality**: The text and illustrations are sharp and clear, indicating professional commercial printing rather than a photocopy or low-quality reproduction.\n4. **Paper quality**: The pages are standard and do not exhibit characteristics of basic copier paper.\n5. **Comparison with enum criteria**: The book matches the criteria for 'pt2' as it has a soft cover and a binding type typical of paperbacks, with no indicators of being a hardcover or a photocopy.\n\nThere are no ambiguous factors in the classification, as the observed features align well with the characteristics of a standard paperback book."
+    },
+    "Condition": "CUKUP_BAIK",
+    "PrintType": "PAPERBACK"
+}
