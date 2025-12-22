@@ -16,6 +16,7 @@ dependencies = [
     { name = "psutil" },
     { name = "pydantic" },
     { name = "pydantic-ai-slim", extra = ["openai"] },
+    { name = "pydantic-to-pyarrow" },
 ]
 
 [package.metadata]
@@ -29,6 +30,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=7.1.3" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-ai-slim", extras = ["openai"], specifier = ">=1.35.0" },
+    { name = "pydantic-to-pyarrow", specifier = ">=0.1.6" },
 ]
 
 [[package]]
@@ -826,6 +828,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/36/f9/15d6169190d49ffb9da3337556e63dec46b3a7f17584425b7a67bd855c0b/pydantic_graph-1.35.0.tar.gz", hash = "sha256:775a4ff0d650e158bc42e97d0ab121a59b0748efe1a32760c28f0ab53f14d4da", size = 58455, upload_time = "2025-12-18T00:15:07.805Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/49/b615dd668cc48cfddb8f8b403e23762ae69a083b6db48e348d7549df2161/pydantic_graph-1.35.0-py3-none-any.whl", hash = "sha256:24c0653a47d21a51e76776b3ddbfcff28d3934d2e895b985f2638b0214acd3d4", size = 72325, upload_time = "2025-12-18T00:15:01.5Z" },
+]
+
+[[package]]
+name = "pydantic-to-pyarrow"
+version = "0.1.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8d/e9/77c78ac01de8e4a7b27d928aa3ae4377e271a74d5fe2c49c04c89002d48e/pydantic_to_pyarrow-0.1.6.tar.gz", hash = "sha256:519285df1eff07d606c46aa54f619da8e3eccb09d023593e02c90e2e2bef378c", size = 57495, upload_time = "2025-01-31T12:11:18.452Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/4b/a14496f596e6161622ee06a9cd0d6fbfc721fec8d11898407899b60c3e6d/pydantic_to_pyarrow-0.1.6-py3-none-any.whl", hash = "sha256:60ec966433a7856e84a69113b1ae9bc248e9ca1a9b688f1b9f344079fa9dddd3", size = 8330, upload_time = "2025-01-31T12:11:16.196Z" },
 ]
 
 [[package]]
