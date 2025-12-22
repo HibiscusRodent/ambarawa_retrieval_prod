@@ -47,3 +47,8 @@ lance_db_test/BookConditionData.lance/_versions/6.manifest
 lance_db_test/BookConditionData.lance/_versions/7.manifest
 lance_db_test/BookConditionData.lance/data/010010100101011101000111e7ef3d48509c8cbab9c0035f80.lance
 lance_db_test/BookConditionData.lance/data/0111111001100011001001102704a74faf9700327aa49977bb.lance
+data/lance_db_semi_prod/active_table.lance/_transactions/0-cd4fd3e0-87bf-4ca0-a33d-bac67f12a6ae.txn
+data/lance_db_semi_prod/active_table.lance/_versions/1.manifest
+data/output_book_data/rak-0003_baris-005_buku-30/image_001.jpg
+data/output_book_data/rak-0003_baris-005_buku-30/image_002.jpg
+data/output_book_data/rak-0003_baris-005_buku-30/image_003.jpg

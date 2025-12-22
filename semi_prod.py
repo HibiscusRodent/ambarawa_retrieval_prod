@@ -16,6 +16,11 @@ sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
 output_folder_path = "data/output_book_data"
 os.makedirs(output_folder_path, exist_ok=True)
 
+# Rebuild models to resolve forward references before converting to PyArrow schemas
+BookConditionData.model_rebuild()
+BookMainData.model_rebuild()
+BookPubAndDistDetails.model_rebuild()
+
 # initialize the necessary configs for lancedb's tables
 ## turn each of the individual data models into arrow schemas
 raw_analysis_pa_schema = get_pyarrow_schema(RawAnalysis)
@@ -24,15 +29,22 @@ book_content_hints_pa_schema = get_pyarrow_schema(BookContentHints)
 book_main_data_pa_schema = get_pyarrow_schema(BookMainData)
 book_pub_and_dist_details_pa_schema = get_pyarrow_schema(BookPubAndDistDetails)
 
+## convert schemas to struct types for nesting
+raw_analysis_struct = pa.struct([(field.name, field.type) for field in raw_analysis_pa_schema])
+book_condition_data_struct = pa.struct([(field.name, field.type) for field in book_condition_data_pa_schema])
+book_content_hints_struct = pa.struct([(field.name, field.type) for field in book_content_hints_pa_schema])
+book_main_data_struct = pa.struct([(field.name, field.type) for field in book_main_data_pa_schema])
+book_pub_and_dist_details_struct = pa.struct([(field.name, field.type) for field in book_pub_and_dist_details_pa_schema])
+
 ## compile them into a full arrow schema
 full_data_model_pa_schema = pa.schema([
     ("book_id", pa.string()),
     ("images_data", pa.list_(pa.binary())),
-    ("raw_analysis", raw_analysis_pa_schema),
-    ("book_condition_data", book_condition_data_pa_schema),
-    ("book_content_hints", book_content_hints_pa_schema),
-    ("book_main_data", book_main_data_pa_schema),
-    ("book_pub_and_dist_details", book_pub_and_dist_details_pa_schema)
+    ("raw_analysis", raw_analysis_struct),
+    ("book_condition_data", book_condition_data_struct),
+    ("book_content_hints", book_content_hints_struct),
+    ("book_main_data", book_main_data_struct),
+    ("book_pub_and_dist_details", book_pub_and_dist_details_struct)
 ])
 
 ## initialized the local lancedb connection
@@ -57,6 +69,12 @@ book_output_folder = os.path.join(output_folder_path, book_id)
 os.makedirs(book_output_folder, exist_ok=True)
 
 ## save the binary images into the output folder path
+# Clear existing images in the folder to ensure overwrite
+for filename in os.listdir(book_output_folder):
+    file_path = os.path.join(book_output_folder, filename)
+    if os.path.isfile(file_path):
+        os.unlink(file_path)
+
 for idx, img_data in enumerate(binary_images):
     img_file_path = os.path.join(book_output_folder, f"image_{idx+1:03d}.jpg")
     with open(img_file_path, "wb") as img_file:
