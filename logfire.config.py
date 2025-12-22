@@ -1,6 +1,6 @@
 import logfire
 
-def configure():
+def configure() -> None:
     logfire.configure()
     return None
 

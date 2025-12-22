@@ -1,4 +1,4 @@
-enum BookCondition {
+enum BookConditionEnum {
     BARU @alias("c1") @description(#"
         The book is in brand new condition, with no visible wear or damage. Often still in original shrink wrap, or in the case where the no shrinkwarp present, it is clear that special preservation and storage measures have been done to keep the book pristine.
     "#)
@@ -19,7 +19,7 @@ enum BookCondition {
     "#)
 }
 
-enum BookPrintType {
+enum BookPrintTypeEnum {
     HARDCOVER @alias("pt1") @description("The book has a hard cover.")
     PAPERBACK @alias("pt2") @description("The book has a soft cover.")
     FOTOKOPI @alias("pt3") @description("The book is a photocopy or printout.")
@@ -121,12 +121,12 @@ class BookConditionData {
     "#)
     
     // Final classification fields
-    Condition BookCondition @description(#"
+    Condition BookConditionEnum @description(#"
         Final condition classification based on the detailed analysis above.
         Must align with the conditionAnalysis reasoning and observed damage severity.
     "#)
     
-    PrintType BookPrintType @description(#"
+    PrintType BookPrintTypeEnum @description(#"
         Final print type classification based on the detailed analysis above.
         Must align with the printTypeAnalysis reasoning and observed construction features.
     "#)
