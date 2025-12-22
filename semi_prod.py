@@ -154,6 +154,8 @@ data_to_ingest = {
     "raw_analysis": bookRawAnalysis.model_dump(),
     "book_condition_data": book_condition_data.model_dump(),
     "book_main_data": book_main_data.model_dump(),
-    "book_content_hints": book_content_hints.model_dump()
+    "book_content_hints": book_content_hints.model_dump(),
+    "book_pub_and_dist_details": book_pub_and_dist_details.model_dump()
 }
+
 
