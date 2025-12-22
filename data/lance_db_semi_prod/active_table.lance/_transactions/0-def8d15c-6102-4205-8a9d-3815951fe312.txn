@@ -1,0 +1,3 @@
+$def8d15c-6102-4205-8a9d-3815951fe312²• book_id ÿÿÿÿÿÿÿÿÿ*string08$images_data ÿÿÿÿÿÿÿÿÿ*list08item *binary08'raw_analysis ÿÿÿÿÿÿÿÿÿ*string08.book_condition_data ÿÿÿÿÿÿÿÿÿ*string08-book_content_hints ÿÿÿÿÿÿÿÿÿ*string08)book_main_data ÿÿÿÿÿÿÿÿÿ*string084book_pub_and_dist_details ÿÿÿÿÿÿÿÿÿ*string08"!
+lance.auto_cleanup.interval20"'
+lance.auto_cleanup.older_than14days
