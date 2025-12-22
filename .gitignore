@@ -39,3 +39,5 @@ ex_lancedb/adventurers.lance/_versions/1.manifest
 ex_lancedb/adventurers.lance/_versions/2.manifest
 ex_lancedb/adventurers.lance/data/00110010101111000111110123b8ce4b5fbff0a2e696f6ac37.lance
 ex_lancedb/adventurers.lance/data/0111100001110010111001108b53204d47a54f05c02f2b631b.lance
+lance_db_test/BookConditionData.lance/_transactions/0-d120ed84-e318-4e0c-84c2-52df2c071cfa.txn
+lance_db_test/BookConditionData.lance/_versions/1.manifest

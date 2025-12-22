@@ -2,6 +2,10 @@ import lancedb
 from lancedb.pydantic import LanceModel
 from pathlib import Path
 
+import pyarrow as pa
+from pydantic import BaseModel, PlainSerializer
+from pydantic_to_pyarrow import get_pyarrow_schema
+
 from image_processors import ImageProcessors, BookFolderPathData
 from baml_client.sync_client import b
 from baml_client.types import PhysicalObservation, ConditionAnalysis, PrintTypeAnalysis, BookConditionEnum, BookPrintTypeEnum, BookConditionData
@@ -26,9 +30,7 @@ bookConditionData = b.GetBookConditionData(
     MultiImages = baml_images,
     bookId = images_data.book_id
 )
-
-# create a pydantic class that handles the data from BAML
-class BookConditionDataLance(LanceModel):
-    BookConditionData: BookConditionData
     
-tbl = db.create_table("BookConditionData", schema=BookConditionDataLance, mode="overwrite")
+bookConditionData_pa_schema = get_pyarrow_schema(BookConditionData)
+    
+tbl = db.create_table("BookConditionData", schema=bookConditionData_pa_schema, mode="overwrite")
