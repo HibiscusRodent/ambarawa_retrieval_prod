@@ -14,9 +14,6 @@ sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
 output_folder_path = "data/output_book_data"
 os.makedirs(output_folder_path, exist_ok=True)
 
-
-
-
 # initialize the necessary configs for lancedb's tables
 
 ## initialize the full data model
@@ -48,9 +45,16 @@ book_id = images_data.book_id
 baml_images = images_data.baml_images
 binary_images = images_data.binary_images
 
-# begin the BAML data processings
-book_condition_data = b.GetBookConditionData(
-    MultiImages=baml_images,
-    bookId=book_id
-)
+# file write operations
+## creating a folder for the specific book id
+book_output_folder = os.path.join(output_folder_path, book_id)
+os.makedirs(book_output_folder, exist_ok=True)
+
+## save the binary images into the output folder path
+for idx, img_data in enumerate(binary_images):
+    img_file_path = os.path.join(book_output_folder, f"image_{idx+1:03d}.jpg")
+    with open(img_file_path, "wb") as img_file:
+        img_file.write(img_data)
+
+
 
