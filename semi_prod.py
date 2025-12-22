@@ -3,6 +3,7 @@ import os
 import lancedb
 import pydantic as pydantic
 import pyarrow as pa
+from typing import List, Optional, Any
 
 from pydantic_to_pyarrow import get_pyarrow_schema
 from image_processors import ImageProcessors, BookFolderPathData
@@ -11,7 +12,7 @@ from baml_client.sync_client import b
 from baml_client.types import BookConditionData, BookContentHints, BookMainData, BookPubAndDistDetails, RawAnalysis
 
 from dotenv import load_dotenv
-env_loader = load_dotenv()
+env_loader: bool = load_dotenv()
 
 sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
 
@@ -148,7 +149,7 @@ with open(book_pub_and_dist_details_json_path, "w", encoding="utf-8") as json_fi
     json_file.write(book_pub_and_dist_details.model_dump_json(indent=4, ensure_ascii=False))
 
 # data to be ingested into the lance db
-data_to_ingest = {
+data_to_ingest: list[dict[str, dict[str, Any] | list[bytes] | str]] = [{
     "book_id": book_id,
     "images_data": binary_images,
     "raw_analysis": bookRawAnalysis.model_dump(),
@@ -156,6 +157,13 @@ data_to_ingest = {
     "book_main_data": book_main_data.model_dump(),
     "book_content_hints": book_content_hints.model_dump(),
     "book_pub_and_dist_details": book_pub_and_dist_details.model_dump()
-}
+}]
 
+print("Adding the data to the LanceDB table...")
+active_tbl = db.open_table("active_table")
+active_tbl.add(data_to_ingest)
 
+print("Data ingestion completed.")
+
+polars_df = active_tbl.to_polars().lazy().collect()
+print(polars_df)

@@ -1,0 +1,128 @@
+{
+    "extractionEvidence": [
+        {
+            "imageNumber": 1,
+            "pageType": "front cover",
+            "location": "center",
+            "extractedText": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "textType": "title",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "pageType": "title page (verso)",
+            "location": "center",
+            "extractedText": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "textType": "title",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "pageType": "title page (verso)",
+            "location": "center",
+            "extractedText": "Compiled by THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES",
+            "textType": "compiler information",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "pageType": "title page (verso)",
+            "location": "bottom center",
+            "extractedText": "FOREIGN LANGUAGES PRESS, PEKING 1961",
+            "textType": "publisher information",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "pageType": "credits page",
+            "location": "center",
+            "extractedText": "Translated by YANG HSIEN-YI AND GLADYS YANG",
+            "textType": "translator information",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "pageType": "credits page",
+            "location": "center",
+            "extractedText": "Illustrated by CHENG SHIH-FA",
+            "textType": "illustrator information",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "pageType": "credits page",
+            "location": "bottom center",
+            "extractedText": "Printed in the People's Republic of China",
+            "textType": "print location information",
+            "scriptIdentified": "Latin (English)",
+            "confidence": "high"
+        }
+    ],
+    "roleDistinction": {
+        "publisherIdentified": true,
+        "editorIdentified": false,
+        "distributorIdentified": false,
+        "printerIdentified": true,
+        "reasoning": "The publisher is clearly identified as 'FOREIGN LANGUAGES PRESS' on the title page verso. No distributor is mentioned, and the printer location is noted as the People's Republic of China. No explicit editor is listed beyond the compilation credit."
+    },
+    "dataComparisons": [
+        {
+            "fieldName": "publisher_name",
+            "fromImages": "FOREIGN LANGUAGES PRESS",
+            "fromNotes": "FOREIGN LANGUAGES PRESS",
+            "agreement": true,
+            "reasoning": "Both sources agree on the publisher name.",
+            "finalDecision": "FOREIGN LANGUAGES PRESS"
+        },
+        {
+            "fieldName": "publisher_location",
+            "fromImages": "PEKING 1961",
+            "fromNotes": "PEKING 1961",
+            "agreement": true,
+            "reasoning": "Both sources agree on the location and year.",
+            "finalDecision": "PEKING 1961"
+        },
+        {
+            "fieldName": "editor",
+            "fromImages": "No editor mentioned",
+            "fromNotes": "No editor mentioned",
+            "agreement": true,
+            "reasoning": "Both sources agree that no editor is explicitly stated.",
+            "finalDecision": "No editor identified"
+        },
+        {
+            "fieldName": "distributor",
+            "fromImages": "No distributor mentioned",
+            "fromNotes": "No distributor mentioned",
+            "agreement": true,
+            "reasoning": "Both sources indicate the absence of a distributor.",
+            "finalDecision": "No distributor identified"
+        }
+    ],
+    "transliterationStrategy": "The publisher name and location are already in Latin script, so no transliteration is required. The English and Indonesian translations are provided for consistency.",
+    "geographicAnalysis": "The publisher is located in PEKING (now BEIJING), People's Republic of China. The printer location is also noted as the People's Republic of China, which aligns with the publisher's location. No ambiguity in the geographic information.",
+    "publisher_name": {
+        "original_script": "FOREIGN LANGUAGES PRESS",
+        "romanized": "FOREIGN LANGUAGES PRESS",
+        "english_translation": "FOREIGN LANGUAGES PRESS",
+        "indonesian_translation": "PENERBITAN BAHASA ASING"
+    },
+    "publisher_location": {
+        "original_script": "PEKING 1961",
+        "romanized": "PEKING 1961",
+        "english_translation": "BEIJING 1961",
+        "indonesian_translation": "PEKIING 1961",
+        "country": "People's Republic of China"
+    },
+    "editor": null,
+    "distributor_name": null,
+    "distributor_location": null,
+    "confidence": 0.95,
+    "image_count": 3
+}
