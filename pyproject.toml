@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "baml-py>=0.214.0",
+    "baml-py==0.215.0",
     "dotenv>=0.9.9",
     "lancedb>=0.26.0",
     "logfire>=4.16.0",

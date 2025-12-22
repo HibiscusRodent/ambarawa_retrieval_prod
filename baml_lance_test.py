@@ -6,6 +6,9 @@ from image_processors import ImageProcessors, BookFolderPathData
 from baml_client.sync_client import b
 from baml_client.types import PhysicalObservation, ConditionAnalysis, PrintTypeAnalysis, BookConditionEnum, BookPrintTypeEnum, BookConditionData
 
+from dotenv import load_dotenv
+env_loader = load_dotenv()
+
 
 uri = "lance_db_test"
 db = lancedb.connect(uri)
@@ -25,4 +28,7 @@ bookConditionData = b.GetBookConditionData(
 )
 
 # create a pydantic class that handles the data from BAML
+class BookConditionDataLance(LanceModel):
+    BookConditionData: BookConditionData
     
+tbl = db.create_table("BookConditionData", schema=BookConditionDataLance, mode="overwrite")
