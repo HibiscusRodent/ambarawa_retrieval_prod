@@ -8,6 +8,7 @@ import PIL.Image
 import pymupdf as fitz
 import io
 
+
 # misc libraries
 from loguru import logger
 from typing import Literal, cast

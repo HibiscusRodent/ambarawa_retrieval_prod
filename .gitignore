@@ -33,3 +33,9 @@ baml_client/__pycache__/tracing.cpython-313.pyc
 baml_client/__pycache__/type_builder.cpython-313.pyc
 baml_client/__pycache__/types.cpython-313.pyc
 baml_client/__pycache__/watchers.cpython-313.pyc
+ex_lancedb/adventurers.lance/_transactions/0-65ac31e5-85e6-40ca-ba8b-b438d38a77a3.txn
+ex_lancedb/adventurers.lance/_transactions/1-786d8ad2-8b0e-46f9-8f80-496ef41720bc.txn
+ex_lancedb/adventurers.lance/_versions/1.manifest
+ex_lancedb/adventurers.lance/_versions/2.manifest
+ex_lancedb/adventurers.lance/data/00110010101111000111110123b8ce4b5fbff0a2e696f6ac37.lance
+ex_lancedb/adventurers.lance/data/0111100001110010111001108b53204d47a54f05c02f2b631b.lance
