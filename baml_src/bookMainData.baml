@@ -132,9 +132,8 @@ function GetBookMainData(MultiImages: image[], bookId: string, RawVisualNote: st
         YOUR MISSION:
         Extract comprehensive bibliographic data through a systematic, evidence-based chain-of-thought process. You must document your reasoning at each step to ensure accuracy and enable verification.
 
-        ═══════════════════════════════════════════════════════════════════════════════
+        
         ANALYTICAL WORKFLOW - FOLLOW THESE STEPS SEQUENTIALLY:
-        ═══════════════════════════════════════════════════════════════════════════════
 
         {% set total_images = MultiImages|length %}
         

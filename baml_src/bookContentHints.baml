@@ -1,4 +1,4 @@
-class ContentHints {
+class BookContentHints {
     // Chain-of-thought reasoning fields
     extractedTextSnippets string[] @description(#"
         List all relevant text snippets found in the images and notes that might contain blurb text, descriptions, or content-related information. Include quotes from back cover, inside flaps, book descriptions, or any promotional text. Each snippet should be a direct quote from the source material.
@@ -61,7 +61,7 @@ class ContentHints {
     "#)
 }
 
-function GetBookContentHints(MultiImages: image[], bookId: string, RawVisualNote: string) -> ContentHints {
+function GetBookContentHints(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookContentHints {
     client "FreeLLMWithFallback"
     prompt #"
         You are an expert literary analyst and librarian specializing in content classification and metadata extraction. Your role is to perform a thorough, step-by-step analysis of book content to extract meaningful insights about its nature, themes, and classification.

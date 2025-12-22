@@ -73,7 +73,7 @@ class RoleDistinction {
     "#)
 }
 
-class BookPublisherAndDistributorDetails {
+class BookPubAndDistDetails {
     // Chain-of-thought reasoning fields
     extractionEvidence PublisherTextEvidence[] @description(#"
         Document ALL text extractions related to publishing information from the images.
@@ -144,7 +144,7 @@ class BookPublisherAndDistributorDetails {
     image_count int @description("Number of images analyzed in this extraction")
 }
 
-function GetBookPublisherData(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookPublisherAndDistributorDetails {
+function GetBookPublisherData(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookPubAndDistDetails {
     client "FreeLLMWithFallback"
     prompt #"
         You are an expert librarian and publishing industry specialist with deep knowledge of book production, distribution, and colophon conventions across different countries and languages. Your role in this national library cataloguing project is to extract precise publisher and distributor information from book photographs.
