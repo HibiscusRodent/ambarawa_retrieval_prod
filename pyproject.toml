@@ -15,6 +15,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "pydantic-ai-slim[openai]>=1.35.0",
     "pydantic-to-pyarrow>=0.1.6",
+    "pylance>=1.0.0",
 ]
 
 [tool.pyrefly]
