@@ -32,5 +32,12 @@ bookConditionData = b.GetBookConditionData(
 )
     
 bookConditionData_pa_schema = get_pyarrow_schema(BookConditionData)
+
+# assuming that theb "BookConditionData" table already exists in the database
+# if not, you can create it using db.create_table method
+
+table = db.open_table("BookConditionData")
+print(table.schema)
+
+table.add(bookConditionData)
     
-tbl = db.create_table("BookConditionData", schema=bookConditionData_pa_schema, mode="overwrite")
