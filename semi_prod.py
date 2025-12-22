@@ -1,6 +1,6 @@
-from polars.selectors import binary
+import os
+
 import lancedb
-from Pathlib import Path
 import pydantic as pydantic
 from pydantic_to_pyarrow import get_pyarrow_schema
 from image_processors import ImageProcessors, BookFolderPathData
@@ -10,8 +10,12 @@ from baml_client.types import BookConditionData, BookContentHints, BookMainData,
 
 sample_book_folder_path =  "sample_data/rak-0003_baris-005_buku-30"
 
-uri = "data/lance_db_semi_prod"
-db = lancedb.connect(uri)
+# the data will be saved into this folder path in the form of images, and json files
+output_folder_path = "data/output_book_data"
+os.makedirs(output_folder_path, exist_ok=True)
+
+
+
 
 # initialize the necessary configs for lancedb's tables
 
@@ -28,6 +32,10 @@ class fullDataModel(pydantic.BaseModel):
 ## turn the pydantic data model into an arrow schema
 full_data_model_pa_schema = get_pyarrow_schema(fullDataModel)
 
+## initialized the local lancedb connection
+uri = "data/lance_db_semi_prod" # or the remote instances hosted by the lancedb cloud
+db = lancedb.connect(uri)
+active_tbl = db.create_table("active_table", schema=full_data_model_pa_schema) # make sure that the overwrite mode is off to avoid data loss
 
 
 # initialize the image processors so that it have the necessary config initialized
