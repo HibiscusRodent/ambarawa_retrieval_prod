@@ -55,3 +55,10 @@ data/output_book_data/rak-0003_baris-005_buku-30/image_003.jpg
 
 data/output_book_data
 sample_data
+data/lance_db_semi_prod/active_table.lance/_transactions/0-def8d15c-6102-4205-8a9d-3815951fe312.txn
+data/lance_db_semi_prod/active_table.lance/_transactions/1-82a37c9c-a0a2-4f60-a63c-0c71ba0b8258.txn
+data/lance_db_semi_prod/active_table.lance/_versions/2.manifest
+data/lance_db_semi_prod/active_table.lance/data/110011000001001000110001f0d7c446f9859979bcaf1936cb.lance
+data/lance_db_test_inference/test_table.lance/_transactions/0-d581768d-de18-40ab-9c9a-209452dbbe9d.txn
+data/lance_db_test_inference/test_table.lance/_versions/1.manifest
+data/lance_db_test_inference/test_table.lance/data/00000100011100111110110154d09b4a3bba2cb24e8d3ab8a0.lance

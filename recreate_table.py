@@ -1,10 +1,12 @@
 """
-Helper script to recreate the LanceDB table with the correct schema.
-Run this ONLY if you want to drop and recreate the active_table.
+Helper script to drop the LanceDB table if needed.
+With the new approach, the table schema is automatically inferred from data,
+so you don't need to recreate the table with a predefined schema.
+
+Run this ONLY if you want to drop the active_table and start fresh.
 """
 
 import lancedb
-import pyarrow as pa
 
 # Connect to the database
 uri = "data/lance_db_semi_prod"
@@ -14,22 +16,7 @@ db = lancedb.connect(uri)
 try:
     db.drop_table("active_table")
     print("✓ Dropped existing 'active_table'")
+    print("✓ The table will be recreated automatically when you run semi_prod.py")
+    print("✓ Schema will be inferred from your data structure")
 except Exception as e:
     print(f"Note: {e}")
-
-# Define schema for LanceDB using PyArrow
-# Store complex nested structures as JSON strings for simplicity
-full_data_model_pa_schema = pa.schema([
-    ("book_id", pa.string()),
-    ("images_data", pa.list_(pa.binary())),
-    ("raw_analysis", pa.string()),  # JSON string
-    ("book_condition_data", pa.string()),  # JSON string
-    ("book_content_hints", pa.string()),  # JSON string
-    ("book_main_data", pa.string()),  # JSON string
-    ("book_pub_and_dist_details", pa.string())  # JSON string
-])
-
-# Create the table with the new schema
-active_tbl = db.create_table("active_table", schema=full_data_model_pa_schema)
-print("✓ Created 'active_table' with new schema")
-print(f"✓ Schema:\n{active_tbl.schema}")

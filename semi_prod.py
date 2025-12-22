@@ -1,10 +1,7 @@
 import os
 
 import lancedb
-import pydantic as pydantic
-import pyarrow as pa
 from typing import List, Optional, Any
-from pydantic import BaseModel
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -25,25 +22,12 @@ BookConditionData.model_rebuild()
 BookMainData.model_rebuild()
 BookPubAndDistDetails.model_rebuild()
 
-# Define schema for LanceDB using PyArrow
-# Store complex nested structures as JSON strings for simplicity
-full_data_model_pa_schema = pa.schema([
-    ("book_id", pa.string()),
-    ("images_data", pa.list_(pa.binary())),
-    ("raw_analysis", pa.string()),  # JSON string
-    ("book_condition_data", pa.string()),  # JSON string
-    ("book_content_hints", pa.string()),  # JSON string
-    ("book_main_data", pa.string()),  # JSON string
-    ("book_pub_and_dist_details", pa.string())  # JSON string
-])
-
-# initialized the local lancedb connection
-uri = "data/lance_db_semi_prod" # or the remote instances hosted by the lancedb cloud
+# Initialize the local lancedb connection
+uri = "data/lance_db_semi_prod"
 db = lancedb.connect(uri)
 
-# make sure that the overwrite mode is off to avoid data loss
-# if the table has not been created yet, uncomment the following line to create it
-# active_tbl = db.create_table("active_table", schema=full_data_model_pa_schema)
+# Note: Schema will be automatically inferred from the data structure
+# No need to manually define PyArrow schema - LanceDB handles nested dicts automatically
 
 
 # initialize the image processors so that it have the necessary config initialized
@@ -75,7 +59,7 @@ for idx, img_data in enumerate(binary_images):
         img_file.write(img_data)
 
 # begin the BAML data processings for book condition data
-book_condition_data = b.GetBookConditionData(
+book_condition_data: BookConditionData = b.GetBookConditionData(
     MultiImages=baml_images,
     bookId=book_id
 )
@@ -134,21 +118,30 @@ book_pub_and_dist_details_json_path = os.path.join(book_output_folder, f"{book_i
 with open(book_pub_and_dist_details_json_path, "w", encoding="utf-8") as json_file:
     json_file.write(book_pub_and_dist_details.model_dump_json(indent=4, ensure_ascii=False))
 
-# data to be ingested into the lance db
-# Store complex nested models as JSON strings
+# Data to be ingested into LanceDB
+# Convert Pydantic models to Python dicts - LanceDB will automatically infer nested schema
 data_to_ingest = [{
     "book_id": book_id,
     "images_data": binary_images,
-    "raw_analysis": bookRawAnalysis.model_dump_json(),
-    "book_condition_data": book_condition_data.model_dump_json(),
-    "book_content_hints": book_content_hints.model_dump_json(),
-    "book_main_data": book_main_data.model_dump_json(),
-    "book_pub_and_dist_details": book_pub_and_dist_details.model_dump_json()
+    "raw_analysis": bookRawAnalysis.model_dump(),  # Dict, not JSON string
+    "book_condition_data": book_condition_data.model_dump(),  # Dict, not JSON string
+    "book_content_hints": book_content_hints.model_dump(),  # Dict, not JSON string
+    "book_main_data": book_main_data.model_dump(),  # Dict, not JSON string
+    "book_pub_and_dist_details": book_pub_and_dist_details.model_dump()  # Dict, not JSON string
 }]
 
 print("Adding the data to the LanceDB table...")
-active_tbl = db.open_table("active_table")
-active_tbl.add(data_to_ingest)
+try:
+    active_tbl = db.open_table("active_table")
+    print("Table 'active_table' opened successfully.")
+except Exception as e:
+    print(f"Table 'active_table' does not exist. Creating new table with inferred schema...")
+    # Create table with automatic schema inference from data
+    active_tbl = db.create_table("active_table", data=data_to_ingest)
+    print("Table created successfully!")
+else:
+    # Table exists, just add data
+    active_tbl.add(data_to_ingest)
 
 print("Data ingestion completed.")
 
