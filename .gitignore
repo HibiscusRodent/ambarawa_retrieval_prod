@@ -63,3 +63,7 @@ data/lance_db_test_inference/test_table.lance/_transactions/0-d581768d-de18-40ab
 data/lance_db_test_inference/test_table.lance/_versions/1.manifest
 data/lance_db_test_inference/test_table.lance/data/00000100011100111110110154d09b4a3bba2cb24e8d3ab8a0.lance
 __pycache__/semi_prod.cpython-313.pyc
+data/lance_db_semi_prod/active_table_lots_columns.lance/data/1111111100000101101100003bb37c43878804996d48390a1d.lance
+data/lance_db_semi_prod/active_table_lots_columns.lance/_transactions/0-2e7642b5-48c7-49c2-8793-40f01a4bac38.txn
+data/lance_db_semi_prod/active_table_lots_columns.lance/_versions/1.manifest
+__pycache__/image_processors.cpython-313.pyc
