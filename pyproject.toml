@@ -16,15 +16,6 @@ dependencies = [
     "pydantic-ai-slim[openai]>=1.35.0",
     "pydantic-to-pyarrow>=0.1.6",
     "pylance>=1.0.0",
-    "joblib==1.5.3",
-    "loguru==0.7.3",
-    "pandas==2.3.3",
-    "polars==1.36.1",
-    "polars-runtime-32==1.36.1",
-    "pymupdf==1.26.7",
-    "pytz==2025.2",
-    "tzdata==2025.3",
-    "win32-setctime==1.2.0",
 ]
 
 [tool.pyrefly]

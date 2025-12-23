@@ -19,3 +19,7 @@ uv.lock
 # lance datas
 *.lance
 baml_client/
+
+# .venv data
+.venv/
+venv/
