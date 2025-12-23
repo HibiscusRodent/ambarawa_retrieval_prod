@@ -64,7 +64,7 @@ client<llm> Gemini20FlashLite {
     base_url "https://openrouter.ai/api/v1"
     model "google/gemini-2.0-flash-lite-001"
     api_key env.OPENROUTER_KEY_PROD
-    retry_policy Exponential
+    retry_policy Constant
     temperature 0.8
     headers {
       "X-Title" "Ambarawa Book Info Retrieval" // Optional

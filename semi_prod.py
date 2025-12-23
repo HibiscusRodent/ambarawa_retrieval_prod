@@ -57,6 +57,9 @@ for idx, img_data in enumerate(binary_images):
     img_file_path = os.path.join(book_output_folder, f"{book_id}_img_{idx+1:03d}.jpg")
     with open(img_file_path, "wb") as img_file:
         img_file.write(img_data)
+        
+        
+## TODO : change the BAML models to use Bahasa Indonesia terms for better localization
 
 # begin the BAML data processings for book condition data
 book_condition_data: BookConditionData = b.GetBookConditionData(
@@ -121,13 +124,55 @@ with open(book_pub_and_dist_details_json_path, "w", encoding="utf-8") as json_fi
 # Data to be ingested into LanceDB
 # Convert Pydantic models to Python dicts - LanceDB will automatically infer nested schema
 data_to_ingest = [{
+    # organization metadata
     "book_id": book_id,
     "images_data": binary_images,
-    "raw_analysis": bookRawAnalysis.model_dump(),  # Dict, not JSON string
-    "book_condition_data": book_condition_data.model_dump(),  # Dict, not JSON string
-    "book_content_hints": book_content_hints.model_dump(),  # Dict, not JSON string
+    
+    # main data of the book
+    "book_title": book_main_data.model_dump().get("title", []),
+    "isbns": book_main_data.model_dump().get("isbns", []), # output ISBN-10 and ISBN-13
+    "language_data"
+    : {
+        "languages": book_main_data.model_dump().get("language", []),
+        "scripts": book_main_data.model_dump().get("script", [])
+    },
+    "authors": book_main_data.model_dump().get("authors", []),
+    "translators": book_main_data.model_dump().get("translators", []),
+    "published_year": book_pub_and_dist_details.model_dump().get("published_year", None),
+    
+    ## saved the entire generation data including from the reasoning steps
     "book_main_data": book_main_data.model_dump(),  # Dict, not JSON string
-    "book_pub_and_dist_details": book_pub_and_dist_details.model_dump()  # Dict, not JSON string
+    
+    # publisher and distribution details
+    "publisher_name" : book_pub_and_dist_details.model_dump().get("publisher_name", []),
+    "publisher_location": book_pub_and_dist_details.model_dump().get("publisher_location", []),
+    "distributor_name": book_pub_and_dist_details.model_dump().get("distributor_name", []),
+    "distributor_location": book_pub_and_dist_details.model_dump().get("distributor_location", []),
+
+    ## saved the entire generation data including from the reasoning steps
+    "book_pub_and_dist_details": book_pub_and_dist_details.model_dump(),  # Dict, not JSON string
+    
+    # book condition data
+    "book_condition_summary": book_condition_data.model_dump().get("Condition", ""),
+    "print_type": book_condition_data.model_dump().get("PrintType", ""),
+    
+    ## dumping the entire generation data including from the reasoning steps
+    "book_condition_data": book_condition_data.model_dump(),  # Dict, not JSON string
+    
+    # book content hints
+    "book_blurb_text": book_content_hints.model_dump().get("bookBlurbText", ""),
+    "bookNERData": book_content_hints.model_dump().get("bookNERData", []),
+    "isFiction": book_content_hints.model_dump().get("isFiction", bool),
+    "book_genre": book_content_hints.model_dump().get("bookGenre", []),
+    
+    ## dumping the entire content hints generation data including from the reasoning steps
+    "book_content_hints": book_content_hints.model_dump(),  # Dict, not JSON string
+    
+    # dumping the raw_analysis from the reasoning process of the book identification
+    "raw_analysis": bookRawAnalysis.model_dump(),  # Dict, not JSON string
+    
+    
+    # TODO : add key data columns for easier querying
 }]
 
 print("Adding the data to the LanceDB table...")

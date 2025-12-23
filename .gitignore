@@ -62,3 +62,4 @@ data/lance_db_semi_prod/active_table.lance/data/110011000001001000110001f0d7c446
 data/lance_db_test_inference/test_table.lance/_transactions/0-d581768d-de18-40ab-9c9a-209452dbbe9d.txn
 data/lance_db_test_inference/test_table.lance/_versions/1.manifest
 data/lance_db_test_inference/test_table.lance/data/00000100011100111110110154d09b4a3bba2cb24e8d3ab8a0.lance
+__pycache__/semi_prod.cpython-313.pyc
