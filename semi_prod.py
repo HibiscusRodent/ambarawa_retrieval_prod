@@ -1,11 +1,12 @@
 import os
 
 import lancedb
+import polars as pl
 
 from image_processors import ImageProcessors, BookFolderPathData
 
 from baml_client.sync_client import b
-from baml_client.types import BookConditionData, BookContentHints, BookMainData, BookPubAndDistDetails, RawAnalysis
+from baml_client.types import BookConditionData, BookMainData, BookPubAndDistDetails
 
 from dotenv import load_dotenv
 env_loader: bool = load_dotenv()
@@ -186,6 +187,8 @@ print("Adding the data to the LanceDB table...")
 try:
     active_tbl = db.open_table("active_table_lots_columns_2")
     print("Table 'active_table_lots_columns_2' opened successfully.")
+    print("Table schema:")
+    print(active_tbl.schema)
 except Exception as e:
     print("Table 'active_table_lots_columns_2' does not exist. Creating new table with inferred schema...")
     # Create table with automatic schema inference from data
@@ -198,6 +201,7 @@ else:
 print("Data ingestion completed.")
 
 polars_df = active_tbl.to_polars().lazy().collect()
+polars_df.select(pl.col("a").struct.json_encode())
 print(polars_df)
 
 # save the polars dataframe to a parquet file for easier viewing

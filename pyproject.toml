@@ -24,7 +24,7 @@ dependencies = [
     "pymupdf==1.26.7",
     "pytz==2025.2",
     "tzdata==2025.3",
-    "win32-setctime==1.2.0"
+    "win32-setctime==1.2.0",
 ]
 
 [tool.pyrefly]

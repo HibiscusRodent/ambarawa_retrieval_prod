@@ -2,71 +2,20 @@
 uv.lock
 uv.lock
 
-# baml_client
-baml_client/__init__.py
-baml_client/async_client.py
-baml_client/config.py
-baml_client/globals.py
-baml_client/inlinedbaml.py
-baml_client/parser.py
-baml_client/runtime.py
-baml_client/stream_types.py
-baml_client/sync_client.py
-baml_client/tracing.py
-baml_client/type_builder.py
-baml_client/type_map.py
-baml_client/types.py
-baml_client/watchers.py
+# all files inside baml_client
+./baml_client/
 
 # environment variables so that api keys are protected
 .env
-__pycache__/image_processors.cpython-313.pyc
-baml_client/__pycache__/__init__.cpython-313.pyc
-baml_client/__pycache__/config.cpython-313.pyc
-baml_client/__pycache__/globals.cpython-313.pyc
-baml_client/__pycache__/inlinedbaml.cpython-313.pyc
-baml_client/__pycache__/parser.cpython-313.pyc
-baml_client/__pycache__/runtime.cpython-313.pyc
-baml_client/__pycache__/stream_types.cpython-313.pyc
-baml_client/__pycache__/sync_client.cpython-313.pyc
-baml_client/__pycache__/tracing.cpython-313.pyc
-baml_client/__pycache__/type_builder.cpython-313.pyc
-baml_client/__pycache__/types.cpython-313.pyc
-baml_client/__pycache__/watchers.cpython-313.pyc
-ex_lancedb/adventurers.lance/_transactions/0-65ac31e5-85e6-40ca-ba8b-b438d38a77a3.txn
-ex_lancedb/adventurers.lance/_transactions/1-786d8ad2-8b0e-46f9-8f80-496ef41720bc.txn
-ex_lancedb/adventurers.lance/_versions/1.manifest
-ex_lancedb/adventurers.lance/_versions/2.manifest
-ex_lancedb/adventurers.lance/data/00110010101111000111110123b8ce4b5fbff0a2e696f6ac37.lance
-ex_lancedb/adventurers.lance/data/0111100001110010111001108b53204d47a54f05c02f2b631b.lance
-lance_db_test/BookConditionData.lance/_transactions/0-d120ed84-e318-4e0c-84c2-52df2c071cfa.txn
-lance_db_test/BookConditionData.lance/_versions/1.manifest
-lance_db_test/BookConditionData.lance/_transactions/5-07b6543f-8928-48af-a9d1-b3d2ace8ad6c.txn
-lance_db_test/BookConditionData.lance/_transactions/6-b90793d3-ba52-4942-b0cb-ea383793ec79.txn
-lance_db_test/BookConditionData.lance/_versions/6.manifest
-lance_db_test/BookConditionData.lance/_versions/7.manifest
-lance_db_test/BookConditionData.lance/data/010010100101011101000111e7ef3d48509c8cbab9c0035f80.lance
-lance_db_test/BookConditionData.lance/data/0111111001100011001001102704a74faf9700327aa49977bb.lance
-data/lance_db_semi_prod/active_table.lance/_transactions/0-cd4fd3e0-87bf-4ca0-a33d-bac67f12a6ae.txn
-data/lance_db_semi_prod/active_table.lance/_versions/1.manifest
-data/output_book_data/rak-0003_baris-005_buku-30/image_001.jpg
-data/output_book_data/rak-0003_baris-005_buku-30/image_002.jpg
-data/output_book_data/rak-0003_baris-005_buku-30/image_003.jpg
 
-data/output_book_data
-sample_data
-data/lance_db_semi_prod/active_table.lance/_transactions/0-def8d15c-6102-4205-8a9d-3815951fe312.txn
-data/lance_db_semi_prod/active_table.lance/_transactions/1-82a37c9c-a0a2-4f60-a63c-0c71ba0b8258.txn
-data/lance_db_semi_prod/active_table.lance/_versions/2.manifest
-data/lance_db_semi_prod/active_table.lance/data/110011000001001000110001f0d7c446f9859979bcaf1936cb.lance
-data/lance_db_test_inference/test_table.lance/_transactions/0-d581768d-de18-40ab-9c9a-209452dbbe9d.txn
-data/lance_db_test_inference/test_table.lance/_versions/1.manifest
-data/lance_db_test_inference/test_table.lance/data/00000100011100111110110154d09b4a3bba2cb24e8d3ab8a0.lance
-__pycache__/semi_prod.cpython-313.pyc
-data/lance_db_semi_prod/active_table_lots_columns.lance/data/1111111100000101101100003bb37c43878804996d48390a1d.lance
-data/lance_db_semi_prod/active_table_lots_columns.lance/_transactions/0-2e7642b5-48c7-49c2-8793-40f01a4bac38.txn
-data/lance_db_semi_prod/active_table_lots_columns.lance/_versions/1.manifest
-__pycache__/image_processors.cpython-313.pyc
-data/lance_db_semi_prod/active_table_lots_columns.lance/_transactions/1-be3ef98f-b2c1-4430-ae8d-6861ea91c89a.txn
-data/lance_db_semi_prod/active_table_lots_columns.lance/_versions/2.manifest
-data/lance_db_semi_prod/active_table_lots_columns.lance/data/111000110111101111000101317bde4203b25d91d49ecb728e.lance
+# cache data and compiled files everywhere they are
+*__pycache__/
+
+# data files
+/data/
+/lancedb/
+/sample_data/
+
+# lance datas
+*.lance
+baml_client/
