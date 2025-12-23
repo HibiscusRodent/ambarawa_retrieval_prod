@@ -1,0 +1,139 @@
+{
+    "extractionEvidence": [
+        {
+            "imageNumber": 1,
+            "location": "front cover - center",
+            "extractedText": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "textType": "title",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 1,
+            "location": "front cover - top",
+            "extractedText": "Illustration of Chung Kuei",
+            "textType": "illustration description",
+            "scriptIdentified": "visual representation",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "location": "title page - top",
+            "extractedText": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "textType": "title",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "location": "title page - below title",
+            "extractedText": "Compiled by THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES",
+            "textType": "compiler",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 2,
+            "location": "title page - bottom",
+            "extractedText": "FOREIGN LANGUAGES PRESS PEKING 1961",
+            "textType": "publisher and publication year",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "location": "colophon page - top",
+            "extractedText": "Translated by YANG HSIEN-YI AND GLADYS YANG",
+            "textType": "translator",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "location": "colophon page - below translator",
+            "extractedText": "Illustrated by CHENG SHIH-FA",
+            "textType": "illustrator",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        },
+        {
+            "imageNumber": 3,
+            "location": "colophon page - bottom",
+            "extractedText": "Printed in the People's Republic of China",
+            "textType": "printing information",
+            "scriptIdentified": "Latin",
+            "confidence": "high"
+        }
+    ],
+    "languageScriptAnalysis": "The book is written entirely in English, using the Latin script. There are no multiple languages or non-Latin scripts present in the text. The content relates to Chinese folklore, but the text itself is in English.",
+    "dataComparisons": [
+        {
+            "fieldName": "title",
+            "fromImages": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "fromNotes": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+            "agreement": true,
+            "reasoning": "Both images and notes provide the same title. The title is clear and legible in the images, and the notes confirm it.",
+            "finalDecision": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS"
+        },
+        {
+            "fieldName": "author",
+            "fromImages": "THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES",
+            "fromNotes": "THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES",
+            "agreement": true,
+            "reasoning": "Both images and notes provide the same compiler information. The compiler is clearly stated in the title page.",
+            "finalDecision": "THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES"
+        },
+        {
+            "fieldName": "publicationYear",
+            "fromImages": "1961",
+            "fromNotes": "1961",
+            "agreement": true,
+            "reasoning": "Both images and notes provide the same publication year. The year is clearly stated in the title page.",
+            "finalDecision": "1961"
+        },
+        {
+            "fieldName": "publisher",
+            "fromImages": "FOREIGN LANGUAGES PRESS, PEKING",
+            "fromNotes": "FOREIGN LANGUAGES PRESS, PEKING",
+            "agreement": true,
+            "reasoning": "Both images and notes provide the same publisher information. The publisher is clearly stated in the title page.",
+            "finalDecision": "FOREIGN LANGUAGES PRESS, PEKING"
+        },
+        {
+            "fieldName": "translator",
+            "fromImages": "YANG HSIEN-YI AND GLADYS YANG",
+            "fromNotes": "YANG HSIEN-YI AND GLADYS YANG",
+            "agreement": true,
+            "reasoning": "Both images and notes provide the same translator information. The translators are clearly stated in the colophon page.",
+            "finalDecision": "YANG HSIEN-YI AND GLADYS YANG"
+        }
+    ],
+    "transliterationReasoning": "No non-Latin scripts are present in the text. Therefore, no transliteration is required.",
+    "title": {
+        "title_in_origin_script": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+        "title_in_latin_script": "STORIES ABOUT NOT BEING AFRAID OF GHOSTS",
+        "title_in_indonesian": "CERITA TENTANG TIDAK TAKUT MENJADI HANTU"
+    },
+    "language": [
+        "English"
+    ],
+    "script": [
+        "Latin"
+    ],
+    "authors": [
+        {
+            "author_in_origin_script": "THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES",
+            "author_in_latin_script": "THE INSTITUTE OF LITERATURE OF THE CHINESE ACADEMY OF SCIENCES"
+        }
+    ],
+    "translator": [
+        {
+            "translators_in_origin_script": "YANG HSIEN-YI AND GLADYS YANG",
+            "translators_in_latin_script": "YANG HSIEN-YI AND GLADYS YANG"
+        }
+    ],
+    "isbn_13": null,
+    "isbn_10": null,
+    "published_year": 1961,
+    "confidence": 1.0
+}

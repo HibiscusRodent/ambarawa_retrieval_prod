@@ -58,6 +58,19 @@ client<llm> Gemma327B {
   }
 }}
 
+client<llm> Gemini20FlashLite {
+  provider "openai-generic"
+  options {
+    base_url "https://openrouter.ai/api/v1"
+    model "google/gemini-2.0-flash-lite-001"
+    api_key env.OPENROUTER_KEY_PROD
+    retry_policy Constant
+    temperature 0.8
+    headers {
+      "X-Title" "Ambarawa Book Info Retrieval" // Optional
+  }
+}}
+
 client<llm> InternVL_78B {
   provider "openai-generic"
   options {

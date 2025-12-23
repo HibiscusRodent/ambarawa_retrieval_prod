@@ -5,25 +5,26 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "baml-py>=0.214.0",
+    "baml-py>=0.215.2",
     "dotenv>=0.9.9",
+    "joblib>=1.5.3",
+    "lancedb>=0.26.0",
     "logfire>=4.16.0",
-    "numpy>=2.3.5",
+    "loguru>=0.7.3",
     "pillow>=12.0.0",
+    "polars>=1.36.1",
     "psutil>=7.1.3",
+    "pyarrow>=22.0.0",
     "pydantic>=2.12.5",
-    "pydantic-ai-slim[openai]>=1.35.0",
+    "pydantic-to-pyarrow>=0.1.6",
+    "pymupdf>=1.26.7",
+    "rich>=14.2.0",
 ]
 
-[tool.pyrefly]
-python-version = "3.13"
-python-interpreter-path = ".venv/Scripts/python"
+[tool]
 
+[tool.pyrefly]
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
-
-project-excludes = ["**/node_modules", "**/__pycache__", "**/*venv/**", "**/.[!/.]*/**"]
-
-[tool]

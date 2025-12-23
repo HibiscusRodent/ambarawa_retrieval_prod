@@ -1,0 +1,59 @@
+{
+    "physicalObservations": [
+        {
+            "imageNumber": 1,
+            "bookComponent": "front cover",
+            "observedFeatures": [
+                "discoloration (yellowish-brown)",
+                "fading of text and illustration",
+                "warping",
+                "creases",
+                "rounded corners",
+                "chipped edges",
+                "uneven ink"
+            ],
+            "severityLevel": "moderate",
+            "readabilityImpact": "slight impact"
+        },
+        {
+            "imageNumber": 2,
+            "bookComponent": "title page",
+            "observedFeatures": [
+                "yellowing",
+                "small stains",
+                "brittle edges",
+                "slight curling"
+            ],
+            "severityLevel": "minor",
+            "readabilityImpact": "no impact"
+        },
+        {
+            "imageNumber": 3,
+            "bookComponent": "credits page",
+            "observedFeatures": [
+                "yellowing",
+                "brittle edges",
+                "slight curling"
+            ],
+            "severityLevel": "minor",
+            "readabilityImpact": "no impact"
+        }
+    ],
+    "conditionAnalysis": {
+        "overallAssessment": "The book shows moderate discoloration and fading on the cover, with slight warping and creases. The pages are yellowed and slightly brittle but remain fully intact and legible. The binding appears secure, and the text is perfectly readable.",
+        "conditionReasoning": "The book exhibits noticeable wear and defects, such as discoloration and brittleness, but it remains fully usable with no significant impact on readability. Based on the condition criteria, it falls into the 'CUKUP_BAIK (Good)' category.",
+        "preservationUrgency": "routine care"
+    },
+    "printTypeAnalysis": {
+        "coverMaterial": "flexible card stock",
+        "bindingType": "perfect binding (glued)",
+        "printQualityIndicators": [
+            "simple cover design",
+            "standard paper quality",
+            "commercial printing standards"
+        ],
+        "printTypeReasoning": "The book has a flexible cover and standard commercial binding, consistent with a paperback. There are no indicators of a hardcover or photocopy, supporting the classification as a soft cover."
+    },
+    "Condition": "CUKUP_BAIK",
+    "PrintType": "PAPERBACK"
+}

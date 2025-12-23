@@ -8,10 +8,13 @@ import PIL.Image
 import pymupdf as fitz
 import io
 
+
 # misc libraries
 from loguru import logger
 from typing import Literal, cast
 from pydantic import BaseModel, ConfigDict, Field
+
+from baml_py import Image as BamlImage
 
 import logfire
 import psutil
@@ -61,6 +64,8 @@ class ProcessedBookData(BaseModel):
     insertion or LLM inference.
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     book_id: str = Field(
         ..., description="The unique identifier of the book, typically the folder name."
     )
@@ -73,6 +78,12 @@ class ProcessedBookData(BaseModel):
         ...,
         description="A list of raw binary bytes representing the processed images. "
         "These are optimized for direct usage with AI model APIs.",
+    )
+
+    baml_images: list[BamlImage] = Field(
+        default_factory=list,
+        description="A list of BAML Image objects created from the base64 images. "
+        "These are suitable for passing directly into BAML functions that accept images.",
     )
 
 
@@ -360,40 +371,52 @@ class ImageProcessors:
             after_parallel_mem = self._get_memory_usage_mb()
             logfire.info("Parallel processing complete", memory_mb=after_parallel_mem)
 
-        if not results:
-            return ProcessedBookData(
-                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            if not results:
+                return ProcessedBookData(
+                    book_id=folder_data.book_id, base64_images=[], binary_images=[]
+                )
+
+            # 3. Unzip results into separate lists
+            # zip(*results) returns two tuples, we convert them to lists
+            base64_images, binary_images = map(list, zip(*results))
+
+            baml_images: list[BamlImage] = []
+            for base64_image in base64_images:
+                try:
+                    # NOTE: our encoder uses WEBP in _encode_to_outputs
+                    baml_images.append(
+                        BamlImage.from_base64("image/webp", base64_image)
+                    )
+                except Exception as e:
+                    logger.error(f"Error creating BAML image: {e}")
+                    continue
+
+            total_base64_size = sum(len(s) for s in base64_images)
+            total_binary_size = sum(len(b) for b in binary_images)
+            end_mem = self._get_memory_usage_mb()
+
+            logfire.info(
+                "Processing complete",
+                image_count=len(base64_images),
+                total_base64_size_bytes=total_base64_size,
+                total_binary_size_bytes=total_binary_size,
+                memory_mb=end_mem,
             )
 
-        # 3. Unzip results into separate lists
-        # zip(*results) returns two tuples, we convert them to lists
-        base64_images, binary_images = map(list, zip(*results))
+            span.set_attribute("final_memory_mb", end_mem)
+            span.set_attribute("total_base64_size", total_base64_size)
+            span.set_attribute("total_binary_size", total_binary_size)
 
-        total_base64_size = sum(len(s) for s in base64_images)
-        total_binary_size = sum(len(b) for b in binary_images)
-        end_mem = self._get_memory_usage_mb()
+            logger.success(
+                f"Successfully processed {len(base64_images)} images for {folder_data.book_id}"
+            )
 
-        logfire.info(
-            "Processing complete",
-            image_count=len(base64_images),
-            total_base64_size_bytes=total_base64_size,
-            total_binary_size_bytes=total_binary_size,
-            memory_mb=end_mem,
-        )
-
-        span.set_attribute("final_memory_mb", end_mem)
-        span.set_attribute("total_base64_size", total_base64_size)
-        span.set_attribute("total_binary_size", total_binary_size)
-
-        logger.success(
-            f"Successfully processed {len(base64_images)} images for {folder_data.book_id}"
-        )
-
-        return ProcessedBookData(
-            book_id=folder_data.book_id,
-            base64_images=cast(list[str], base64_images),
-            binary_images=cast(list[bytes], binary_images),
-        )
+            return ProcessedBookData(
+                book_id=folder_data.book_id,
+                base64_images=cast(list[str], base64_images),
+                binary_images=cast(list[bytes], binary_images),
+                baml_images=baml_images,
+            )
 
 
 def main() -> None:

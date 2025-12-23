@@ -2,22 +2,25 @@
 uv.lock
 uv.lock
 
-# baml_client
-baml_client/__init__.py
-baml_client/async_client.py
-baml_client/config.py
-baml_client/globals.py
-baml_client/inlinedbaml.py
-baml_client/parser.py
-baml_client/runtime.py
-baml_client/stream_types.py
-baml_client/sync_client.py
-baml_client/tracing.py
-baml_client/type_builder.py
-baml_client/type_map.py
-baml_client/types.py
-baml_client/watchers.py
+# all files inside baml_client
+./baml_client/
 
 # environment variables so that api keys are protected
 .env
-__pycache__/image_processors.cpython-313.pyc
+
+# cache data and compiled files everywhere they are
+*__pycache__/
+
+# data files
+/data/
+/lancedb/
+/sample_data/
+
+# lance datas
+*.lance
+baml_client/
+
+# .venv data
+.venv/
+venv/
+uv.lock
