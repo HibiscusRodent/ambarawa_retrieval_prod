@@ -67,3 +67,6 @@ data/lance_db_semi_prod/active_table_lots_columns.lance/data/1111111100000101101
 data/lance_db_semi_prod/active_table_lots_columns.lance/_transactions/0-2e7642b5-48c7-49c2-8793-40f01a4bac38.txn
 data/lance_db_semi_prod/active_table_lots_columns.lance/_versions/1.manifest
 __pycache__/image_processors.cpython-313.pyc
+data/lance_db_semi_prod/active_table_lots_columns.lance/_transactions/1-be3ef98f-b2c1-4430-ae8d-6861ea91c89a.txn
+data/lance_db_semi_prod/active_table_lots_columns.lance/_versions/2.manifest
+data/lance_db_semi_prod/active_table_lots_columns.lance/data/111000110111101111000101317bde4203b25d91d49ecb728e.lance

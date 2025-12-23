@@ -1,7 +1,6 @@
 import os
 
 import lancedb
-from typing import List, Optional, Any
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -200,3 +199,7 @@ print("Data ingestion completed.")
 
 polars_df = active_tbl.to_polars().lazy().collect()
 print(polars_df)
+
+# save the polars dataframe to a csv file for easier viewing
+polars_csv_path = os.path.join(book_output_folder, f"{book_id}_lancedb_data.csv")
+polars_df.write_csv(polars_csv_path)
