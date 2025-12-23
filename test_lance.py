@@ -1,4 +1,3 @@
-from pandas._libs.hashtable import mode
 import lancedb
 
 

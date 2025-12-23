@@ -1,7 +1,6 @@
 import os
 
 import lancedb
-import polars as pl
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -28,9 +27,9 @@ BookPubAndDistDetails.model_rebuild()
 lance_db_api_key = os.getenv("LANCEDB_API_KEY_PROD")
 
 db = lancedb.connect(
-  uri="db://ambarawa-book-retrieval-x3jev2",
-  api_key=lance_db_api_key,
-  region="us-east-1"
+    uri="db://ambarawa-book-retrieval-x3jev2",
+    api_key=lance_db_api_key,
+    region="us-east-1"
 )
 
 # Note: Schema will be automatically inferred from the data structure
@@ -198,7 +197,6 @@ print("Data ingestion completed.")
 
 print("Fetching and displaying data from the LanceDB table...")
 polars_df = active_tbl.to_polars().lazy().collect()
-polars_df.select(pl.col("raw_analysis").struct.json_encode())
 print(polars_df)
 
 # save the polars dataframe to a parquet file for easier viewing

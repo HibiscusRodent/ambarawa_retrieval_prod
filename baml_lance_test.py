@@ -1,10 +1,6 @@
 import lancedb
-from lancedb.pydantic import LanceModel
-import polars as pl
 from pathlib import Path
 
-import pyarrow as pa
-from pydantic import BaseModel, PlainSerializer
 from pydantic_to_pyarrow import get_pyarrow_schema
 
 from image_processors import ImageProcessors, BookFolderPathData

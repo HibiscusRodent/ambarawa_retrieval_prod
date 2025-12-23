@@ -4,7 +4,6 @@ This bypasses BAML to test just the LanceDB functionality.
 """
 
 import lancedb
-from typing import List, Dict, Any
 
 # Sample nested data structure similar to BAML models
 test_data = [{
@@ -78,7 +77,7 @@ print("\nCreating table with automatic schema inference from nested dicts...")
 try:
     test_table = db.create_table("test_table", data=test_data)
     print("✓ Table created successfully!")
-    print(f"\n✓ Inferred Schema:")
+    print("\n✓ Inferred Schema:")
     print(test_table.schema)
     
     # Try to retrieve the data
