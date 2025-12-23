@@ -12,9 +12,10 @@ uv.lock
 *__pycache__/
 
 # data files
-/data/
-/lancedb/
-/sample_data/
+data/
+lancedb/
+lance_db_test/
+sample_data/
 
 # lance datas
 *.lance
