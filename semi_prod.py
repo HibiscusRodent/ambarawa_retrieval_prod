@@ -184,12 +184,12 @@ data_to_ingest = [{
 
 print("Adding the data to the LanceDB table...")
 try:
-    active_tbl = db.open_table("active_table_lots_columns")
-    print("Table 'active_table' opened successfully.")
+    active_tbl = db.open_table("active_table_lots_columns_2")
+    print("Table 'active_table_lots_columns_2' opened successfully.")
 except Exception as e:
-    print("Table 'active_table_lots_columns' does not exist. Creating new table with inferred schema...")
+    print("Table 'active_table_lots_columns_2' does not exist. Creating new table with inferred schema...")
     # Create table with automatic schema inference from data
-    active_tbl = db.create_table("active_table_lots_columns", data=data_to_ingest)
+    active_tbl = db.create_table("active_table_lots_columns_2", data=data_to_ingest)
     print("Table created successfully!")
 else:
     # Table exists, just add data
