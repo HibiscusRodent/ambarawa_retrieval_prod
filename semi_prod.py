@@ -200,6 +200,7 @@ else:
 
 print("Data ingestion completed.")
 
+print("Fetching and displaying data from the LanceDB table...")
 polars_df = active_tbl.to_polars().lazy().collect()
 polars_df.select(pl.col("a").struct.json_encode())
 print(polars_df)
@@ -207,3 +208,5 @@ print(polars_df)
 # save the polars dataframe to a parquet file for easier viewing
 parquet_output_path = os.path.join(book_output_folder, f"{book_id}_lancedb_data.parquet")
 polars_df.write_parquet(parquet_output_path)
+
+print(f"Data saved to Parquet file at: {parquet_output_path}")
