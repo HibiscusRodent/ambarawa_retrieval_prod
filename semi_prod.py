@@ -23,8 +23,15 @@ BookMainData.model_rebuild()
 BookPubAndDistDetails.model_rebuild()
 
 # Initialize the local lancedb connection
-uri = "data/lance_db_semi_prod"
-db = lancedb.connect(uri)
+# uri = "data/lance_db_semi_prod"
+
+lance_db_api_key = os.getenv("LANCEDB_API_KEY_PROD")
+
+db = lancedb.connect(
+  uri="db://ambarawa-book-retrieval-x3jev2",
+  api_key=lance_db_api_key,
+  region="us-east-1"
+)
 
 # Note: Schema will be automatically inferred from the data structure
 # No need to manually define PyArrow schema - LanceDB handles nested dicts automatically
@@ -184,25 +191,14 @@ data_to_ingest = [{
 }]
 
 print("Adding the data to the LanceDB table...")
-try:
-    active_tbl = db.open_table("active_table_lots_columns_2")
-    print("Table 'active_table_lots_columns_2' opened successfully.")
-    print("Table schema:")
-    print(active_tbl.schema)
-except Exception as e:
-    print("Table 'active_table_lots_columns_2' does not exist. Creating new table with inferred schema...")
-    # Create table with automatic schema inference from data
-    active_tbl = db.create_table("active_table_lots_columns_2", data=data_to_ingest)
-    print("Table created successfully!")
-else:
-    # Table exists, just add data
-    active_tbl.add(data_to_ingest)
+active_tbl = db.create_table("active_table_lots_columns", data=data_to_ingest, mode = "overwrite")
+
 
 print("Data ingestion completed.")
 
 print("Fetching and displaying data from the LanceDB table...")
 polars_df = active_tbl.to_polars().lazy().collect()
-polars_df.select(pl.col("a").struct.json_encode())
+polars_df.select(pl.col("raw_analysis").struct.json_encode())
 print(polars_df)
 
 # save the polars dataframe to a parquet file for easier viewing
