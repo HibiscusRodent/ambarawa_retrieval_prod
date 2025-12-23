@@ -200,6 +200,6 @@ print("Data ingestion completed.")
 polars_df = active_tbl.to_polars().lazy().collect()
 print(polars_df)
 
-# save the polars dataframe to a csv file for easier viewing
-polars_csv_path = os.path.join(book_output_folder, f"{book_id}_lancedb_data.csv")
-polars_df.write_csv(polars_csv_path)
+# save the polars dataframe to a parquet file for easier viewing
+parquet_output_path = os.path.join(book_output_folder, f"{book_id}_lancedb_data.parquet")
+polars_df.write_parquet(parquet_output_path)
