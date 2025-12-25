@@ -27,6 +27,7 @@ def configure_environment() -> None:
     """
     load_dotenv()
     logfire.configure()
+    logfire.info("Environment configured and Logfire initialized.")
 
 
 def setup_output_directory(output_path: str) -> None:
@@ -49,7 +50,9 @@ def initialize_database(uri: str) -> DBConnection:
     Returns:
         DBConnection: The connected LanceDB instance.
     """
-    return lancedb.connect(uri)
+    db = lancedb.connect(uri)
+    logfire.info("Connected to LanceDB", uri=uri)
+    return db
 
 
 def initialize_image_processor() -> ImageProcessors:
@@ -62,6 +65,7 @@ def initialize_image_processor() -> ImageProcessors:
     return ImageProcessors()
 
 
+@logfire.instrument
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
 ) -> ProcessedBookData:
@@ -76,9 +80,16 @@ def process_image_folder(
         ProcessedBookData: The processed data containing book ID and images.
     """
     book_folder = BookFolderPathData(path=folder_path)
-    return processor.process_book_folder(book_folder)
+    data = processor.process_book_folder(book_folder)
+    logfire.info(
+        "Processed book folder",
+        book_id=data.book_id,
+        image_count=len(data.binary_images),
+    )
+    return data
 
 
+@logfire.instrument
 def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> str:
     """
     Save binary images to the local file system.
@@ -93,27 +104,33 @@ def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> 
     Returns:
         str: The path to the specific book's output folder.
     """
-    book_id = processed_data.book_id
-    book_output_folder = os.path.join(output_root, book_id)
+    book_id: str = processed_data.book_id
+    book_output_folder: str = os.path.join(output_root, book_id)
     os.makedirs(book_output_folder, exist_ok=True)
 
     # Clear existing images
     for filename in os.listdir(book_output_folder):
-        file_path = os.path.join(book_output_folder, filename)
+        file_path: str = os.path.join(book_output_folder, filename)
         if os.path.isfile(file_path):
             os.unlink(file_path)
 
     # Write binary images
     for idx, img_data in enumerate(processed_data.binary_images):
-        img_file_path = os.path.join(
+        img_file_path: str = os.path.join(
             book_output_folder, f"{book_id}_img_{idx + 1:03d}.jpg"
         )
         with open(img_file_path, "wb") as img_file:
             img_file.write(img_data)
 
+    logfire.info(
+        "Saved images locally",
+        path=book_output_folder,
+        count=len(processed_data.binary_images),
+    )
     return book_output_folder
 
 
+@logfire.instrument
 def analyze_book_condition(
     baml_images: Any, book_id: str, output_folder: str
 ) -> BookConditionData:
@@ -128,15 +145,25 @@ def analyze_book_condition(
     Returns:
         BookConditionData: The analysis result.
     """
-    data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
+    try:
+        data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_condition_data.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
+        json_path: str = os.path.join(
+            output_folder, f"{book_id}_book_condition_data.json"
+        )
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
-    return data
+        logfire.info("Analyzed book condition", book_id=book_id)
+        return data
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze book condition", book_id=book_id, error=str(e)
+        )
+        return BookConditionData.model_construct(Condition=None, PrintType=None)
 
 
+@logfire.instrument
 def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawAnalysis:
     """
     Perform raw visual analysis using BAML and save the result.
@@ -149,15 +176,26 @@ def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawA
     Returns:
         RawAnalysis: The analysis result.
     """
-    analysis = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
+    try:
+        analysis = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
 
-    json_path = os.path.join(output_folder, f"{book_id}_raw_analysis.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_raw_analysis.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
 
-    return analysis
+        logfire.info("Completed raw visual analysis", book_id=book_id)
+        return analysis
+    except Exception as e:
+        logfire.exception("Failed to run raw analysis", book_id=book_id, error=str(e))
+        return RawAnalysis.model_construct(
+            coverPageDescription="",
+            backCoverDescription="",
+            colophonPageDescription="",
+            otherPageDescriptions="",
+        )
 
 
+@logfire.instrument
 def analyze_content_hints(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookContentHints:
@@ -173,19 +211,29 @@ def analyze_content_hints(
     Returns:
         BookContentHints: The analysis result.
     """
-    hints = b.GetBookContentHints(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        hints = b.GetBookContentHints(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_content_hints.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_book_content_hints.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
 
-    return hints
+        logfire.info("Analyzed content hints", book_id=book_id)
+        return hints
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze content hints", book_id=book_id, error=str(e)
+        )
+        return BookContentHints.model_construct(
+            bookBlurbText=None, bookNERData=[], isFiction=False, bookGenre=[]
+        )
 
 
+@logfire.instrument
 def analyze_main_data(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookMainData:
@@ -201,19 +249,35 @@ def analyze_main_data(
     Returns:
         BookMainData: The analysis result.
     """
-    main_data = b.GetBookMainData(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        main_data = b.GetBookMainData(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_main_data.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_book_main_data.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
 
-    return main_data
+        logfire.info("Analyzed main book data", book_id=book_id)
+        return main_data
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze main book data", book_id=book_id, error=str(e)
+        )
+        return BookMainData.model_construct(
+            title=None,
+            isbn_10=None,
+            isbn_13=None,
+            language=[],
+            script=[],
+            authors=[],
+            translator=[],
+        )
 
 
+@logfire.instrument
 def analyze_publisher_details(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookPubAndDistDetails:
@@ -229,19 +293,35 @@ def analyze_publisher_details(
     Returns:
         BookPubAndDistDetails: The analysis result.
     """
-    details = b.GetBookPublisherData(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        details = b.GetBookPublisherData(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_pub_and_dist_details.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(
+            output_folder, f"{book_id}_book_pub_and_dist_details.json"
+        )
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
 
-    return details
+        logfire.info("Analyzed publisher details", book_id=book_id)
+        return details
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze publisher details", book_id=book_id, error=str(e)
+        )
+        return BookPubAndDistDetails.model_construct(
+            published_year=None,
+            publisher_name=None,
+            publisher_location=None,
+            distributor_name=None,
+            distributor_location=None,
+        )
 
 
+@logfire.instrument
 def prepare_data_for_ingestion(
     book_id: str,
     binary_images: List[bytes],
@@ -266,10 +346,10 @@ def prepare_data_for_ingestion(
     Returns:
         List[Dict[str, Any]]: A list containing the dictionary to be ingested.
     """
-    book_main_dumped = book_main.model_dump()
-    book_pub_dumped = book_pub.model_dump()
-    book_condition_dumped = book_condition.model_dump()
-    book_content_dumped = book_content.model_dump()
+    book_main_dumped: dict[str, Any] = book_main.model_dump()
+    book_pub_dumped: dict[str, Any] = book_pub.model_dump()
+    book_condition_dumped: dict[str, Any] = book_condition.model_dump()
+    book_content_dumped: dict[str, Any] = book_content.model_dump()
 
     return [
         {
@@ -316,6 +396,7 @@ def prepare_data_for_ingestion(
     ]
 
 
+@logfire.instrument
 def ingest_to_lancedb(
     db: DBConnection,
     table_name: str,
@@ -334,9 +415,13 @@ def ingest_to_lancedb(
     Returns:
         Any: The table object.
     """
+    logfire.info(
+        "Starting data ingestion", table_name=table_name, record_count=len(data)
+    )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
     active_tbl = db.create_table(table_name, data=data, mode=mode)
     print("Data ingestion completed.")
+    logfire.info("Data ingestion completed")
     return active_tbl
 
 
