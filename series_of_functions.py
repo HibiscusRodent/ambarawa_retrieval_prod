@@ -27,6 +27,7 @@ def configure_environment() -> None:
     """
     load_dotenv()
     logfire.configure()
+    logfire.info("Environment configured and Logfire initialized.")
 
 
 def setup_output_directory(output_path: str) -> None:
@@ -49,7 +50,9 @@ def initialize_database(uri: str) -> DBConnection:
     Returns:
         DBConnection: The connected LanceDB instance.
     """
-    return lancedb.connect(uri)
+    db = lancedb.connect(uri)
+    logfire.info("Connected to LanceDB", uri=uri)
+    return db
 
 
 def initialize_image_processor() -> ImageProcessors:
@@ -62,6 +65,7 @@ def initialize_image_processor() -> ImageProcessors:
     return ImageProcessors()
 
 
+@logfire.instrument
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
 ) -> ProcessedBookData:
@@ -76,9 +80,16 @@ def process_image_folder(
         ProcessedBookData: The processed data containing book ID and images.
     """
     book_folder = BookFolderPathData(path=folder_path)
-    return processor.process_book_folder(book_folder)
+    data = processor.process_book_folder(book_folder)
+    logfire.info(
+        "Processed book folder",
+        book_id=data.book_id,
+        image_count=len(data.binary_images),
+    )
+    return data
 
 
+@logfire.instrument
 def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> str:
     """
     Save binary images to the local file system.
@@ -111,9 +122,15 @@ def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> 
         with open(img_file_path, "wb") as img_file:
             img_file.write(img_data)
 
+    logfire.info(
+        "Saved images locally",
+        path=book_output_folder,
+        count=len(processed_data.binary_images),
+    )
     return book_output_folder
 
 
+@logfire.instrument
 def analyze_book_condition(
     baml_images: Any, book_id: str, output_folder: str
 ) -> BookConditionData:
@@ -134,9 +151,11 @@ def analyze_book_condition(
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
+    logfire.info("Analyzed book condition", book_id=book_id)
     return data
 
 
+@logfire.instrument
 def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawAnalysis:
     """
     Perform raw visual analysis using BAML and save the result.
@@ -155,9 +174,11 @@ def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawA
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
 
+    logfire.info("Completed raw visual analysis", book_id=book_id)
     return analysis
 
 
+@logfire.instrument
 def analyze_content_hints(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookContentHints:
@@ -183,9 +204,11 @@ def analyze_content_hints(
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
 
+    logfire.info("Analyzed content hints", book_id=book_id)
     return hints
 
 
+@logfire.instrument
 def analyze_main_data(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookMainData:
@@ -211,9 +234,11 @@ def analyze_main_data(
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
 
+    logfire.info("Analyzed main book data", book_id=book_id)
     return main_data
 
 
+@logfire.instrument
 def analyze_publisher_details(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
 ) -> BookPubAndDistDetails:
@@ -239,9 +264,11 @@ def analyze_publisher_details(
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
 
+    logfire.info("Analyzed publisher details", book_id=book_id)
     return details
 
 
+@logfire.instrument
 def prepare_data_for_ingestion(
     book_id: str,
     binary_images: List[bytes],
@@ -316,6 +343,7 @@ def prepare_data_for_ingestion(
     ]
 
 
+@logfire.instrument
 def ingest_to_lancedb(
     db: DBConnection,
     table_name: str,
@@ -334,9 +362,13 @@ def ingest_to_lancedb(
     Returns:
         Any: The table object.
     """
+    logfire.info(
+        "Starting data ingestion", table_name=table_name, record_count=len(data)
+    )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
     active_tbl = db.create_table(table_name, data=data, mode=mode)
     print("Data ingestion completed.")
+    logfire.info("Data ingestion completed")
     return active_tbl
 
 
