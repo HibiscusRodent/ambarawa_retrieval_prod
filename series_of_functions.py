@@ -93,19 +93,19 @@ def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> 
     Returns:
         str: The path to the specific book's output folder.
     """
-    book_id = processed_data.book_id
-    book_output_folder = os.path.join(output_root, book_id)
+    book_id: str = processed_data.book_id
+    book_output_folder: str = os.path.join(output_root, book_id)
     os.makedirs(book_output_folder, exist_ok=True)
 
     # Clear existing images
     for filename in os.listdir(book_output_folder):
-        file_path = os.path.join(book_output_folder, filename)
+        file_path: str = os.path.join(book_output_folder, filename)
         if os.path.isfile(file_path):
             os.unlink(file_path)
 
     # Write binary images
     for idx, img_data in enumerate(processed_data.binary_images):
-        img_file_path = os.path.join(
+        img_file_path: str = os.path.join(
             book_output_folder, f"{book_id}_img_{idx + 1:03d}.jpg"
         )
         with open(img_file_path, "wb") as img_file:
@@ -130,7 +130,7 @@ def analyze_book_condition(
     """
     data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_condition_data.json")
+    json_path: str = os.path.join(output_folder, f"{book_id}_book_condition_data.json")
     with open(json_path, "w", encoding="utf-8") as json_file:
         json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
@@ -266,10 +266,10 @@ def prepare_data_for_ingestion(
     Returns:
         List[Dict[str, Any]]: A list containing the dictionary to be ingested.
     """
-    book_main_dumped = book_main.model_dump()
-    book_pub_dumped = book_pub.model_dump()
-    book_condition_dumped = book_condition.model_dump()
-    book_content_dumped = book_content.model_dump()
+    book_main_dumped: dict[str, Any] = book_main.model_dump()
+    book_pub_dumped: dict[str, Any] = book_pub.model_dump()
+    book_condition_dumped: dict[str, Any] = book_condition.model_dump()
+    book_content_dumped: dict[str, Any] = book_content.model_dump()
 
     return [
         {
