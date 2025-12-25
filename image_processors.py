@@ -10,7 +10,6 @@ import io
 
 
 # misc libraries
-from loguru import logger
 from typing import Literal, cast
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -183,7 +182,7 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logger.info(f"Getting a list of books from {folder_data.path}")
+        logfire.info("Getting a list of books from {path}", path=str(folder_data.path))
 
         directory = folder_data.path
         try:
@@ -209,7 +208,11 @@ class ImageProcessors:
 
         matched_paths.sort()
         file_names = [p.name for p in matched_paths]
-        logger.info(f"Found {len(matched_paths)} supported files in {directory}")
+        logfire.info(
+            "Found {count} supported files in {directory}",
+            count=len(matched_paths),
+            directory=str(directory),
+        )
         return file_names, matched_paths
 
     def get_book_id(self, folder_data: BookFolderPathData) -> str:
@@ -232,21 +235,20 @@ class ImageProcessors:
 
         Args:
             file_names: List of file names to check
-
         Returns:
             "pdf", "images", or "others"
         """
-        logger.info("Determining book data type...")
+        logfire.info("Determining book data type...")
         extensions = {Path(f).suffix.lower() for f in file_names}
 
         if any(ext in self.pdf_extensions for ext in extensions):
-            logger.info("Detected PDF files")
+            logfire.info("Detected PDF files")
             return "pdf"
         elif any(ext in self.images_extensions for ext in extensions):
-            logger.info("Detected image files")
+            logfire.info("Detected image files")
             return "images"
         else:
-            logger.warning("Detected unsupported file types")
+            logfire.warning("Detected unsupported file types")
             return "others"
 
     @staticmethod
@@ -298,7 +300,11 @@ class ImageProcessors:
                     img.thumbnail(self.max_size, resampling_method)
                     return self._encode_to_outputs(img, self.quality, self.webp_method)
         except Exception as e:
-            logger.error(f"Error processing source {source}: {e}")
+            logfire.error(
+                "Error processing source {source}: {error}",
+                source=str(source),
+                error=str(e),
+            )
             raise
 
     def process_book_folder(self, folder_data: BookFolderPathData) -> ProcessedBookData:
@@ -346,9 +352,6 @@ class ImageProcessors:
                     "No processable files found for book {book_id}",
                     book_id=folder_data.book_id,
                 )
-                logger.warning(
-                    f"No processable files found for book {folder_data.book_id}"
-                )
                 return ProcessedBookData(
                     book_id=folder_data.book_id, base64_images=[], binary_images=[]
                 )
@@ -361,9 +364,6 @@ class ImageProcessors:
             )
 
             # 2. Parallel execution of the unified pipeline
-            logger.info(
-                f"Processing {len(sources)} items for book {folder_data.book_id}..."
-            )
             results = Parallel(n_jobs=self.n_jobs)(
                 delayed(self._process_single_source)(s) for s in sources
             )
@@ -388,7 +388,7 @@ class ImageProcessors:
                         BamlImage.from_base64("image/webp", base64_image)
                     )
                 except Exception as e:
-                    logger.error(f"Error creating BAML image: {e}")
+                    logfire.error("Error creating BAML image: {error}", error=str(e))
                     continue
 
             total_base64_size = sum(len(s) for s in base64_images)
@@ -406,10 +406,6 @@ class ImageProcessors:
             span.set_attribute("final_memory_mb", end_mem)
             span.set_attribute("total_base64_size", total_base64_size)
             span.set_attribute("total_binary_size", total_binary_size)
-
-            logger.success(
-                f"Successfully processed {len(base64_images)} images for {folder_data.book_id}"
-            )
 
             return ProcessedBookData(
                 book_id=folder_data.book_id,
