@@ -175,10 +175,7 @@ data_to_ingest = [{
     "book_content_hints": book_content_dumped,  # Dict, not JSON string
     
     # dumping the raw_analysis from the reasoning process of the book identification
-    "raw_analysis": bookRawAnalysis.model_dump(),  # Dict, not JSON string
-    
-    
-    # TODO : add key data columns for easier querying
+    "raw_analysis": bookRawAnalysis.model_dump(),  # Dict, not JSON string    
 }]
 
 print("Adding the data to the LanceDB table...")
