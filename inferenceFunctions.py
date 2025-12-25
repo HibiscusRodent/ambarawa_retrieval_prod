@@ -2,9 +2,11 @@ from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
 import shutil
+import asyncio
 
 import lancedb
 from lancedb.db import DBConnection
+from lancedb import connect_async
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -55,7 +57,7 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
         f.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
 @task
-def initialize_database(uri: str) -> DBConnection:
+async def initialize_database(uri: str) -> DBConnection:
     """
     Initialize the LanceDB connection.
 
@@ -65,7 +67,7 @@ def initialize_database(uri: str) -> DBConnection:
     Returns:
         DBConnection: The connected LanceDB instance.
     """
-    db: DBConnection = lancedb.connect(uri)
+    db = await connect_async(uri)
     logfire.info("Connected to LanceDB", uri=uri)
     return db
 
@@ -409,7 +411,8 @@ async def ingest_to_lancedb(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
-    active_tbl = db.create_table(table_name, data=data, mode=mode)
+    db = await db
+    active_tbl = await db.create_table(table_name, data=data, mode=mode)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
@@ -478,8 +481,8 @@ async def main_flow() -> None:
     )
 
     # 7. Ingest to LanceDB
-    ingest_to_lancedb(db, table_name, data_to_ingest)
+    await ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
 if __name__ == "__main__":
-    main_flow()
+    asyncio.run(main_flow())
