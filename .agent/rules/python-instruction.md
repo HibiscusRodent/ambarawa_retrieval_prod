@@ -3,7 +3,7 @@ trigger: always_on
 ---
 
 1. In a python codebase, after each edit session, run Ruff to check and then lint the modified files and codes. To do it, use the terminal command `uvx ruff check` and `uvx ruff format`. If there is any lint errors not fixed by the `format` command, please analyze what might be the cause of the errors. Then, check how much change is needed to fix the errors. If it only requires light editing that will not change any working part of the code, please fix it. Otherwise, please refrain from editing, and just provide an explanation and suggested fixes.
-2. Python codes should be strongly typed. To help with that, use the pyrefly toolings. To check if there is any typing errors, please use the `uvx pyrefly check --summarize-errors` command. Makesure beforehand that you are in the current project directory. To automatically infer types using pyrefly, use the `pyrefly infer path/to/directory/` command for directories and `pyrefly infer path/to/file.py` for specific files.Here is the full list of commands for the pyrefly:
+2. Python codes should be strongly typed. To help with that, use the pyrefly toolings. To check if there is any typing errors, please use the `uvx pyrefly check /path/to/file.py --summarize-errors` command. Makesure beforehand that you are in the current project directory. Please avoid global typecheck, only do file check instead. To automatically infer types using pyrefly, use the `pyrefly infer path/to/directory/` command for directories and `pyrefly infer path/to/file.py` for specific files.Here is the full list of commands for the pyrefly:
 
 ```
 Commands:
