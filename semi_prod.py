@@ -16,10 +16,14 @@ from baml_client.types import (
 )
 
 from typing import Any
+import logfire
+from logfire import Logfire
 
 from dotenv import load_dotenv
 
+# configuring environment
 env_loader: bool = load_dotenv()
+logfire_configuration: Logfire = logfire.configure()
 
 sample_book_folder_path: str = "sample_data/rak-0018_baris-002_buku-12"
 
@@ -33,6 +37,7 @@ os.makedirs(output_folder_path, exist_ok=True)
 
 lance_db_api_key: str | None = os.getenv("LANCEDB_API_KEY_PROD")
 
+# TODO : remove the remote lancedb connection, use local instead
 db: DBConnection = lancedb.connect(
     uri="db://ambarawa-book-retrieval-x3jev2",
     api_key=lance_db_api_key,
@@ -215,15 +220,3 @@ active_tbl = db.create_table(
 
 
 print("Data ingestion completed.")
-
-print("Fetching and displaying data from the LanceDB table...")
-polars_df = active_tbl.to_polars().lazy().collect()
-print(polars_df)
-
-# save the polars dataframe to a parquet file for easier viewing
-parquet_output_path = os.path.join(
-    book_output_folder, f"{book_id}_lancedb_data.parquet"
-)
-polars_df.write_parquet(parquet_output_path)
-
-print(f"Data saved to Parquet file at: {parquet_output_path}")
