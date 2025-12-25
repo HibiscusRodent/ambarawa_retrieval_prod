@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 import lancedb
-from lancedb.db import DBConnection, Table
+from lancedb.db import DBConnection
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -20,10 +20,10 @@ from baml_client.types import (
 from typing import Any, List, Dict
 import logfire
 from pydantic import BaseModel
-
+from prefect import task, flow
 from dotenv import load_dotenv
 
-
+@task
 def configure_environment() -> None:
     """
     Load environment variables and configure logfire.
@@ -32,7 +32,7 @@ def configure_environment() -> None:
     logfire.configure()
     logfire.info("Environment configured and Logfire initialized.")
 
-
+@task
 def setup_output_directory(output_path: Path) -> None:
     """
     Ensure the output directory exists.
@@ -42,7 +42,7 @@ def setup_output_directory(output_path: Path) -> None:
     """
     output_path.mkdir(parents=True, exist_ok=True)
 
-
+@task
 def _save_to_json(data: BaseModel, output_path: Path) -> None:
     """
     Helper function to save a Pydantic model as a JSON file.
@@ -54,7 +54,7 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
     with output_path.open("w", encoding="utf-8") as f:
         f.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
-
+@task
 def initialize_database(uri: str) -> DBConnection:
     """
     Initialize the LanceDB connection.
@@ -69,7 +69,7 @@ def initialize_database(uri: str) -> DBConnection:
     logfire.info("Connected to LanceDB", uri=uri)
     return db
 
-
+@task
 def initialize_image_processor() -> ImageProcessors:
     """
     Initialize the ImageProcessors instance.
@@ -79,7 +79,7 @@ def initialize_image_processor() -> ImageProcessors:
     """
     return ImageProcessors()
 
-
+@task
 @logfire.instrument
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
@@ -103,7 +103,7 @@ def process_image_folder(
     )
     return data
 
-
+@task
 @logfire.instrument
 def save_images_locally(processed_data: ProcessedBookData, output_root: Path) -> Path:
     """
@@ -140,6 +140,7 @@ def save_images_locally(processed_data: ProcessedBookData, output_root: Path) ->
     return book_output_folder
 
 
+@task
 @logfire.instrument
 def analyze_book_condition(
     baml_images: Any, book_id: str, output_folder: Path
@@ -168,6 +169,7 @@ def analyze_book_condition(
         return BookConditionData.model_construct(Condition=None, PrintType=None)
 
 
+@task
 @logfire.instrument
 def run_raw_analysis(
     baml_images: Any, book_id: str, output_folder: Path
@@ -199,6 +201,7 @@ def run_raw_analysis(
         )
 
 
+@task
 @logfire.instrument
 def analyze_content_hints(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
@@ -234,7 +237,7 @@ def analyze_content_hints(
         )
 
 
-@logfire.instrument
+@task
 def analyze_main_data(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookMainData:
@@ -275,7 +278,7 @@ def analyze_main_data(
         )
 
 
-@logfire.instrument
+@task
 def analyze_publisher_details(
     baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookPubAndDistDetails:
@@ -317,7 +320,7 @@ def analyze_publisher_details(
         )
 
 
-@logfire.instrument
+@task
 def prepare_data_for_ingestion(
     book_id: str,
     binary_images: List[bytes],
@@ -383,8 +386,8 @@ def prepare_data_for_ingestion(
     ]
 
 
-@logfire.instrument
-def ingest_to_lancedb(
+@task
+async def ingest_to_lancedb(
     db: DBConnection,
     table_name: str,
     data: List[Dict[str, Any]],
@@ -406,13 +409,14 @@ def ingest_to_lancedb(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
-    active_tbl = db.create_table(table_name, data=data, mode=mode)
+    active_tbl = await db.create_table(table_name, data=data, mode=mode)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
 
 
-def main() -> None:
+@flow
+async def main_flow() -> None:
     """
     Main function to orchestrate the book data extraction and ingestion process.
     """
@@ -474,8 +478,9 @@ def main() -> None:
     )
 
     # 7. Ingest to LanceDB
-    ingest_to_lancedb(db, table_name, data_to_ingest)
+    await ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main_flow())
