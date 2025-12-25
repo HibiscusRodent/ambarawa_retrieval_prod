@@ -33,16 +33,10 @@ os.makedirs(output_folder_path, exist_ok=True)
 
 
 # Initialize the local lancedb connection
-# uri = "data/lance_db_semi_prod"
-
-lance_db_api_key: str | None = os.getenv("LANCEDB_API_KEY_PROD")
+uri = "data/test/lance_db_semi_prod"
 
 # TODO : remove the remote lancedb connection, use local instead
-db: DBConnection = lancedb.connect(
-    uri="db://ambarawa-book-retrieval-x3jev2",
-    api_key=lance_db_api_key,
-    region="us-east-1",
-)
+db: DBConnection = lancedb.connect(uri)
 
 # initialize the image processors so that it have the necessary config initialized
 ip: ImageProcessors = ImageProcessors()
@@ -75,7 +69,6 @@ for idx, img_data in enumerate(binary_images):
         img_file.write(img_data)
 
 
-## TODO : change the BAML models to use Bahasa Indonesia terms for better localization
 
 # begin the BAML data processings for book condition data
 book_condition_data: BookConditionData = b.GetBookConditionData(
