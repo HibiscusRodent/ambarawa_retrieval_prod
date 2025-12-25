@@ -30,7 +30,7 @@ Options:
 ```
 
 
-3. Use the `desktop-commander` mcp tools to perform codebase analysis before you decide on how to implement things. Use all available tools thoroughout your editing process, including but not limited to search, code editing, filesystem operations, among many others. 
+3. Use the `filesystem` and 'octocode' mcp tools to perform codebase analysis before you decide on how to implement things. Use all available tools thoroughout your editing process, including but not limited to search, code editing, filesystem operations, among many others. 
 4. Always use the context7 mcp tools to get relevant documentations regarding the implementation that is asked of you.
 6. In python projects, prefer object oriented programming where functions are organized as classes.
 7. Always add easy to understand but detailed docstrings to function, classes and other important part of a file/scripts. Assume that the reader of the docstrings do not have specialized expertise on the function/part of the code, but, still have a basic understanding of pythons and commonly used libraries.
@@ -61,4 +61,4 @@ Commands:
 ```
 
 10. Please refer to the `machine_specifications.md` at the root dictionary of the project when you are about to make an edit or decisions where the OS and the hardware specifications such as the size of the RAM is important.
-11. As the main operating system where the project is developed on, and powershell is the default shell, please write your terminal command accordingly.
+11. As the main operating system where the project is developed on, and powershell is the default shell, please write your terminal command accordingly. Avoid using the '&&' to run multiple lines of commmands when you use terminal.

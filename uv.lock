@@ -25,6 +25,7 @@ dependencies = [
     { name = "pydantic-to-pyarrow" },
     { name = "pymupdf" },
     { name = "rich" },
+    { name = "types-psutil" },
 ]
 
 [package.metadata]
@@ -43,6 +44,7 @@ requires-dist = [
     { name = "pydantic-to-pyarrow", specifier = ">=0.1.6" },
     { name = "pymupdf", specifier = ">=1.26.7" },
     { name = "rich", specifier = ">=14.2.0" },
+    { name = "types-psutil", specifier = ">=7.1.3.20251211" },
 ]
 
 [[package]]
@@ -908,6 +910,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737, upload_time = "2024-11-24T20:12:22.481Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl", hash = "sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2", size = 78540, upload_time = "2024-11-24T20:12:19.698Z" },
+]
+
+[[package]]
+name = "types-psutil"
+version = "7.1.3.20251211"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/d5/85165865b060fed80b5991574c2ae0ddfd4786398dc8bceddfe0a8960b74/types_psutil-7.1.3.20251211.tar.gz", hash = "sha256:2c25f8fd3a1a4aebdffb861b97755c9a2d5d8019dd6ec1a2f2a77ec796652c89", size = 25198, upload_time = "2025-12-11T03:16:44.651Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/61/658be05b56aeec195386b3f5c48cfa5bdaf8e989de3e4d802eeba457bd05/types_psutil-7.1.3.20251211-py3-none-any.whl", hash = "sha256:369872d955d7d47d77f4832b41e2300f832126e3fa97eb107d2d6a294c23c650", size = 32055, upload_time = "2025-12-11T03:16:43.864Z" },
 ]
 
 [[package]]
