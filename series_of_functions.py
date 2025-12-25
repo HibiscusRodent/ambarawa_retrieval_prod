@@ -145,14 +145,22 @@ def analyze_book_condition(
     Returns:
         BookConditionData: The analysis result.
     """
-    data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
+    try:
+        data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
 
-    json_path: str = os.path.join(output_folder, f"{book_id}_book_condition_data.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
+        json_path: str = os.path.join(
+            output_folder, f"{book_id}_book_condition_data.json"
+        )
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
-    logfire.info("Analyzed book condition", book_id=book_id)
-    return data
+        logfire.info("Analyzed book condition", book_id=book_id)
+        return data
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze book condition", book_id=book_id, error=str(e)
+        )
+        return BookConditionData.model_construct(Condition=None, PrintType=None)
 
 
 @logfire.instrument
@@ -168,14 +176,23 @@ def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawA
     Returns:
         RawAnalysis: The analysis result.
     """
-    analysis = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
+    try:
+        analysis = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
 
-    json_path = os.path.join(output_folder, f"{book_id}_raw_analysis.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_raw_analysis.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
 
-    logfire.info("Completed raw visual analysis", book_id=book_id)
-    return analysis
+        logfire.info("Completed raw visual analysis", book_id=book_id)
+        return analysis
+    except Exception as e:
+        logfire.exception("Failed to run raw analysis", book_id=book_id, error=str(e))
+        return RawAnalysis.model_construct(
+            coverPageDescription="",
+            backCoverDescription="",
+            colophonPageDescription="",
+            otherPageDescriptions="",
+        )
 
 
 @logfire.instrument
@@ -194,18 +211,26 @@ def analyze_content_hints(
     Returns:
         BookContentHints: The analysis result.
     """
-    hints = b.GetBookContentHints(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        hints = b.GetBookContentHints(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_content_hints.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_book_content_hints.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
 
-    logfire.info("Analyzed content hints", book_id=book_id)
-    return hints
+        logfire.info("Analyzed content hints", book_id=book_id)
+        return hints
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze content hints", book_id=book_id, error=str(e)
+        )
+        return BookContentHints.model_construct(
+            bookBlurbText=None, bookNERData=[], isFiction=False, bookGenre=[]
+        )
 
 
 @logfire.instrument
@@ -224,18 +249,32 @@ def analyze_main_data(
     Returns:
         BookMainData: The analysis result.
     """
-    main_data = b.GetBookMainData(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        main_data = b.GetBookMainData(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_main_data.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(output_folder, f"{book_id}_book_main_data.json")
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
 
-    logfire.info("Analyzed main book data", book_id=book_id)
-    return main_data
+        logfire.info("Analyzed main book data", book_id=book_id)
+        return main_data
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze main book data", book_id=book_id, error=str(e)
+        )
+        return BookMainData.model_construct(
+            title=None,
+            isbn_10=None,
+            isbn_13=None,
+            language=[],
+            script=[],
+            authors=[],
+            translator=[],
+        )
 
 
 @logfire.instrument
@@ -254,18 +293,32 @@ def analyze_publisher_details(
     Returns:
         BookPubAndDistDetails: The analysis result.
     """
-    details = b.GetBookPublisherData(
-        MultiImages=baml_images,
-        bookId=book_id,
-        RawVisualNote=raw_visual_json,
-    )
+    try:
+        details = b.GetBookPublisherData(
+            MultiImages=baml_images,
+            bookId=book_id,
+            RawVisualNote=raw_visual_json,
+        )
 
-    json_path = os.path.join(output_folder, f"{book_id}_book_pub_and_dist_details.json")
-    with open(json_path, "w", encoding="utf-8") as json_file:
-        json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
+        json_path = os.path.join(
+            output_folder, f"{book_id}_book_pub_and_dist_details.json"
+        )
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
 
-    logfire.info("Analyzed publisher details", book_id=book_id)
-    return details
+        logfire.info("Analyzed publisher details", book_id=book_id)
+        return details
+    except Exception as e:
+        logfire.exception(
+            "Failed to analyze publisher details", book_id=book_id, error=str(e)
+        )
+        return BookPubAndDistDetails.model_construct(
+            published_year=None,
+            publisher_name=None,
+            publisher_location=None,
+            distributor_name=None,
+            distributor_location=None,
+        )
 
 
 @logfire.instrument
