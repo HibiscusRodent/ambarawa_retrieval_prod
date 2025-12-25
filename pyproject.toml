@@ -21,10 +21,13 @@ dependencies = [
     "rich>=14.2.0",
 ]
 
-[tool]
-
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+project-excludes = [
+    ".venv"
+]
+
+[tool]

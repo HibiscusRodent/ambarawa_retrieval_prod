@@ -5,7 +5,7 @@ import lancedb
 from image_processors import ImageProcessors, BookFolderPathData
 
 from baml_client.sync_client import b
-from baml_client.types import BookConditionData, BookMainData, BookPubAndDistDetails
+from baml_client.types import BookConditionData
 
 from dotenv import load_dotenv
 env_loader: bool = load_dotenv()
@@ -16,10 +16,6 @@ sample_book_folder_path =  "sample_data/rak-0018_baris-002_buku-12"
 output_folder_path = "data/output_book_data"
 os.makedirs(output_folder_path, exist_ok=True)
 
-# Rebuild models to resolve forward references
-BookConditionData.model_rebuild()
-BookMainData.model_rebuild()
-BookPubAndDistDetails.model_rebuild()
 
 # Initialize the local lancedb connection
 # uri = "data/lance_db_semi_prod"
@@ -32,14 +28,10 @@ db = lancedb.connect(
     region="us-east-1"
 )
 
-# Note: Schema will be automatically inferred from the data structure
-# No need to manually define PyArrow schema - LanceDB handles nested dicts automatically
-
-
 # initialize the image processors so that it have the necessary config initialized
 ip = ImageProcessors()
 book_folder = BookFolderPathData(path=sample_book_folder_path)
-images_data = ip.process_book_folder(book_folder)
+images_data: ProcessedBookData = ip.process_book_folder(book_folder)
 
 # store the images data in various formats into variables
 book_id = images_data.book_id
