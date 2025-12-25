@@ -25,3 +25,4 @@ baml_client/
 .venv/
 venv/
 uv.lock
+uv.lock
