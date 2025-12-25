@@ -1,9 +1,10 @@
+from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
 import shutil
 
 import lancedb
-from lancedb.db import DBConnection
+from lancedb.db import DBConnection, Table
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -64,7 +65,7 @@ def initialize_database(uri: str) -> DBConnection:
     Returns:
         DBConnection: The connected LanceDB instance.
     """
-    db = lancedb.connect(uri)
+    db: DBConnection = lancedb.connect(uri)
     logfire.info("Connected to LanceDB", uri=uri)
     return db
 
@@ -426,43 +427,43 @@ def main() -> None:
     setup_output_directory(output_folder_path)
 
     # 2. Initialization
-    db = initialize_database(lance_db_uri)
-    ip = initialize_image_processor()
+    db: DBConnection = initialize_database(lance_db_uri)
+    ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
-    images_data = process_image_folder(ip, str(sample_book_folder_path))
+    images_data: ProcessedBookData = process_image_folder(ip, str(sample_book_folder_path))
 
     # 4. Save Images Locally
-    book_output_folder = save_images_locally(images_data, output_folder_path)
+    book_output_folder: Path = save_images_locally(images_data, output_folder_path)
 
     # 5. BAML Analysis
     book_id = images_data.book_id
-    baml_images = images_data.baml_images
+    baml_images: list[BamlImagePy] = images_data.baml_images
 
     # Step 5a: Book Condition
-    book_condition = analyze_book_condition(baml_images, book_id, book_output_folder)
+    book_condition: BookConditionData = analyze_book_condition(baml_images, book_id, book_output_folder)
 
     # Step 5b: Raw Analysis
-    raw_analysis = run_raw_analysis(baml_images, book_id, book_output_folder)
-    raw_visual_json = raw_analysis.model_dump_json()
+    raw_analysis: RawAnalysis = run_raw_analysis(baml_images, book_id, book_output_folder)
+    raw_visual_json: str = raw_analysis.model_dump_json()
 
     # Step 5c: Content Hints
-    content_hints = analyze_content_hints(
+    content_hints: BookContentHints = analyze_content_hints(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # Step 5d: Main Data
-    main_data = analyze_main_data(
+    main_data: BookMainData = analyze_main_data(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # Step 5e: Publisher Details
-    pub_details = analyze_publisher_details(
+    pub_details: BookPubAndDistDetails = analyze_publisher_details(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # 6. Prepare for Ingestion
-    data_to_ingest = prepare_data_for_ingestion(
+    data_to_ingest: list[dict[str, Any]] = prepare_data_for_ingestion(
         book_id=book_id,
         binary_images=images_data.binary_images,
         book_main=main_data,
