@@ -6,7 +6,6 @@ import asyncio
 
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
-# from lancedb.db import DBConnection
 from lancedb import connect_async
 from lancedb.db import AsyncConnection
 
@@ -24,6 +23,7 @@ from baml_client.types import (
 from typing import Any, List, Dict
 from pydantic import BaseModel
 from prefect import task, flow
+from prefect.cache_policies import NO_CACHE
 from dotenv import load_dotenv
 
 # TODO: Remove the logfire logging since we are using prefect logging now
