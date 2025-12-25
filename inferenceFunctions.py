@@ -409,7 +409,7 @@ async def ingest_to_lancedb(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
-    active_tbl = await db.create_table(table_name, data=data, mode=mode)
+    active_tbl = db.create_table(table_name, data=data, mode=mode)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
@@ -478,9 +478,8 @@ async def main_flow() -> None:
     )
 
     # 7. Ingest to LanceDB
-    await ingest_to_lancedb(db, table_name, data_to_ingest)
+    ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main_flow())
+    main_flow()
