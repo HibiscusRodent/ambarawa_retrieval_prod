@@ -426,7 +426,7 @@ async def ingest_to_lancedb(
 
 
 @flow
-async def main_flow() -> None:
+async def process_one_book_flow() -> None:
     """
     Main function to orchestrate the book data extraction and ingestion process.
     """
@@ -492,4 +492,4 @@ async def main_flow() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main_flow())
+    asyncio.run(process_one_book_flow())
