@@ -95,7 +95,7 @@ def process_image_folder(
         ProcessedBookData: The processed data containing book ID and images.
     """
     book_folder = BookFolderPathData(path=folder_path)
-    data = processor.process_book_folder(book_folder)
+    data: ProcessedBookData = processor.process_book_folder(book_folder)
     logfire.info(
         "Processed book folder",
         book_id=data.book_id,
