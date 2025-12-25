@@ -6,9 +6,9 @@ import asyncio
 
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
-import lancedb
-from lancedb.db import DBConnection
+# from lancedb.db import DBConnection
 from lancedb import connect_async
+from lancedb.db import AsyncConnection
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -61,7 +61,8 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
         f.write(data.model_dump_json(indent=4, ensure_ascii=False))
 
 @task
-async def initialize_database(uri: str) -> DBConnection:
+@task
+async def initialize_database(uri: str) -> AsyncConnection:
     """
     Initialize the LanceDB connection.
 
@@ -69,7 +70,7 @@ async def initialize_database(uri: str) -> DBConnection:
         uri: The URI for the LanceDB database.
 
     Returns:
-        DBConnection: The connected LanceDB instance.
+        AsyncConnection: The connected LanceDB instance.
     """
     db = await connect_async(uri)
     logfire.info("Connected to LanceDB", uri=uri)
@@ -393,8 +394,9 @@ def prepare_data_for_ingestion(
 
 
 @task
+@task
 async def ingest_to_lancedb(
-    db: DBConnection,
+    db: AsyncConnection,
     table_name: str,
     data: List[Dict[str, Any]],
     mode: str = "overwrite",
@@ -415,8 +417,10 @@ async def ingest_to_lancedb(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
     print(f"Adding the data to the LanceDB table '{table_name}'...")
-    db = await db
-    active_tbl = await db.create_table(table_name, data=data, mode=mode)
+    # db is already awaited in main_flow
+    if mode == "overwrite":
+        await db.drop_table(table_name, ignore_missing=True)
+    active_tbl = await db.create_table(table_name, data=data)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
@@ -438,7 +442,7 @@ async def main_flow() -> None:
     setup_output_directory(output_folder_path)
 
     # 2. Initialization
-    db: DBConnection = initialize_database(lance_db_uri)
+    db: AsyncConnection = await initialize_database(lance_db_uri)
     ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
