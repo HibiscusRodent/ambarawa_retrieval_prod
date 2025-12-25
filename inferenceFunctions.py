@@ -393,8 +393,7 @@ def prepare_data_for_ingestion(
     ]
 
 
-@task
-@task
+@task(cache_policy=NO_CACHE)
 async def ingest_to_lancedb(
     db: AsyncConnection,
     table_name: str,
