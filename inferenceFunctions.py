@@ -4,6 +4,8 @@ from pathlib import Path
 import shutil
 import asyncio
 
+# TODO : configure the lancedb connnection and make sure that the overwrite mode on
+# create table is turned off in real production
 import lancedb
 from lancedb.db import DBConnection
 from lancedb import connect_async
@@ -20,10 +22,12 @@ from baml_client.types import (
 )
 
 from typing import Any, List, Dict
-import logfire
 from pydantic import BaseModel
 from prefect import task, flow
 from dotenv import load_dotenv
+
+# TODO: Remove the logfire logging since we are using prefect logging now
+import logfire
 
 @task
 def configure_environment() -> None:
