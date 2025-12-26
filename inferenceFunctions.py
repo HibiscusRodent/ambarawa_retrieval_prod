@@ -1,8 +1,15 @@
+from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
-import os
+from pathlib import Path
+import shutil
+import asyncio
+import random
+import string
 
-import lancedb
-from lancedb.db import DBConnection
+# TODO : configure the lancedb connnection and make sure that the overwrite mode on
+# create table is turned off in real production
+from lancedb import connect_async
+from lancedb.db import AsyncConnection
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -16,11 +23,16 @@ from baml_client.types import (
 )
 
 from typing import Any, List, Dict
-import logfire
-
+from pydantic import BaseModel
+from prefect import task, flow
+from prefect.cache_policies import NO_CACHE
 from dotenv import load_dotenv
 
+# TODO: Remove the logfire logging since we are using prefect logging now
+import logfire
 
+
+@task
 def configure_environment() -> None:
     """
     Load environment variables and configure logfire.
@@ -30,17 +42,33 @@ def configure_environment() -> None:
     logfire.info("Environment configured and Logfire initialized.")
 
 
-def setup_output_directory(output_path: str) -> None:
+@task
+def setup_output_directory(output_path: Path) -> None:
     """
     Ensure the output directory exists.
 
     Args:
-        output_path: The path to the output directory.
+        output_path: The Path to the output directory.
     """
-    os.makedirs(output_path, exist_ok=True)
+    output_path.mkdir(parents=True, exist_ok=True)
 
 
-def initialize_database(uri: str) -> DBConnection:
+@task
+def _save_to_json(data: BaseModel, output_path: Path) -> None:
+    """
+    Helper function to save a Pydantic model as a JSON file.
+
+    Args:
+        data: The Pydantic model instance.
+        output_path: The full Path to the output JSON file.
+    """
+    with output_path.open("w", encoding="utf-8") as f:
+        f.write(data.model_dump_json(indent=4, ensure_ascii=False))
+
+
+@task
+@task
+async def initialize_database(uri: str) -> AsyncConnection:
     """
     Initialize the LanceDB connection.
 
@@ -48,13 +76,14 @@ def initialize_database(uri: str) -> DBConnection:
         uri: The URI for the LanceDB database.
 
     Returns:
-        DBConnection: The connected LanceDB instance.
+        AsyncConnection: The connected LanceDB instance.
     """
-    db = lancedb.connect(uri)
+    db = await connect_async(uri)
     logfire.info("Connected to LanceDB", uri=uri)
     return db
 
 
+@task
 def initialize_image_processor() -> ImageProcessors:
     """
     Initialize the ImageProcessors instance.
@@ -65,6 +94,7 @@ def initialize_image_processor() -> ImageProcessors:
     return ImageProcessors()
 
 
+@task
 @logfire.instrument
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
@@ -80,7 +110,7 @@ def process_image_folder(
         ProcessedBookData: The processed data containing book ID and images.
     """
     book_folder = BookFolderPathData(path=folder_path)
-    data = processor.process_book_folder(book_folder)
+    data: ProcessedBookData = processor.process_book_folder(book_folder)
     logfire.info(
         "Processed book folder",
         book_id=data.book_id,
@@ -89,8 +119,9 @@ def process_image_folder(
     return data
 
 
+@task
 @logfire.instrument
-def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> str:
+def save_images_locally(processed_data: ProcessedBookData, output_root: Path) -> Path:
     """
     Save binary images to the local file system.
 
@@ -102,37 +133,33 @@ def save_images_locally(processed_data: ProcessedBookData, output_root: str) -> 
         output_root: The root output directory.
 
     Returns:
-        str: The path to the specific book's output folder.
+        Path: The Path object for the specific book's output folder.
     """
     book_id: str = processed_data.book_id
-    book_output_folder: str = os.path.join(output_root, book_id)
-    os.makedirs(book_output_folder, exist_ok=True)
+    book_output_folder: Path = output_root / book_id
 
-    # Clear existing images
-    for filename in os.listdir(book_output_folder):
-        file_path: str = os.path.join(book_output_folder, filename)
-        if os.path.isfile(file_path):
-            os.unlink(file_path)
+    # Efficiently clear existing images or create folder
+    if book_output_folder.exists():
+        shutil.rmtree(book_output_folder)
+    book_output_folder.mkdir(parents=True, exist_ok=True)
 
     # Write binary images
     for idx, img_data in enumerate(processed_data.binary_images):
-        img_file_path: str = os.path.join(
-            book_output_folder, f"{book_id}_img_{idx + 1:03d}.jpg"
-        )
-        with open(img_file_path, "wb") as img_file:
-            img_file.write(img_data)
+        img_file_path: Path = book_output_folder / f"{book_id}_img_{idx + 1:03d}.jpg"
+        img_file_path.write_bytes(img_data)
 
     logfire.info(
         "Saved images locally",
-        path=book_output_folder,
+        path=str(book_output_folder),
         count=len(processed_data.binary_images),
     )
     return book_output_folder
 
 
+@task
 @logfire.instrument
 def analyze_book_condition(
-    baml_images: Any, book_id: str, output_folder: str
+    baml_images: Any, book_id: str, output_folder: Path
 ) -> BookConditionData:
     """
     Analyze the book condition using BAML and save the result.
@@ -147,12 +174,7 @@ def analyze_book_condition(
     """
     try:
         data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
-
-        json_path: str = os.path.join(
-            output_folder, f"{book_id}_book_condition_data.json"
-        )
-        with open(json_path, "w", encoding="utf-8") as json_file:
-            json_file.write(data.model_dump_json(indent=4, ensure_ascii=False))
+        _save_to_json(data, output_folder / f"{book_id}_book_condition_data.json")
 
         logfire.info("Analyzed book condition", book_id=book_id)
         return data
@@ -163,8 +185,11 @@ def analyze_book_condition(
         return BookConditionData.model_construct(Condition=None, PrintType=None)
 
 
+@task
 @logfire.instrument
-def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawAnalysis:
+def run_raw_analysis(
+    baml_images: Any, book_id: str, output_folder: Path
+) -> RawAnalysis:
     """
     Perform raw visual analysis using BAML and save the result.
 
@@ -178,10 +203,7 @@ def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawA
     """
     try:
         analysis = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
-
-        json_path = os.path.join(output_folder, f"{book_id}_raw_analysis.json")
-        with open(json_path, "w", encoding="utf-8") as json_file:
-            json_file.write(analysis.model_dump_json(indent=4, ensure_ascii=False))
+        _save_to_json(analysis, output_folder / f"{book_id}_raw_analysis.json")
 
         logfire.info("Completed raw visual analysis", book_id=book_id)
         return analysis
@@ -195,9 +217,10 @@ def run_raw_analysis(baml_images: Any, book_id: str, output_folder: str) -> RawA
         )
 
 
+@task
 @logfire.instrument
 def analyze_content_hints(
-    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
+    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookContentHints:
     """
     Generate content hints using BAML and save the result.
@@ -217,10 +240,7 @@ def analyze_content_hints(
             bookId=book_id,
             RawVisualNote=raw_visual_json,
         )
-
-        json_path = os.path.join(output_folder, f"{book_id}_book_content_hints.json")
-        with open(json_path, "w", encoding="utf-8") as json_file:
-            json_file.write(hints.model_dump_json(indent=4, ensure_ascii=False))
+        _save_to_json(hints, output_folder / f"{book_id}_book_content_hints.json")
 
         logfire.info("Analyzed content hints", book_id=book_id)
         return hints
@@ -233,9 +253,9 @@ def analyze_content_hints(
         )
 
 
-@logfire.instrument
+@task
 def analyze_main_data(
-    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
+    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookMainData:
     """
     Extract main book data using BAML and save the result.
@@ -255,10 +275,7 @@ def analyze_main_data(
             bookId=book_id,
             RawVisualNote=raw_visual_json,
         )
-
-        json_path = os.path.join(output_folder, f"{book_id}_book_main_data.json")
-        with open(json_path, "w", encoding="utf-8") as json_file:
-            json_file.write(main_data.model_dump_json(indent=4, ensure_ascii=False))
+        _save_to_json(main_data, output_folder / f"{book_id}_book_main_data.json")
 
         logfire.info("Analyzed main book data", book_id=book_id)
         return main_data
@@ -277,9 +294,9 @@ def analyze_main_data(
         )
 
 
-@logfire.instrument
+@task
 def analyze_publisher_details(
-    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: str
+    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookPubAndDistDetails:
     """
     Extract publisher and distributor details using BAML and save the result.
@@ -300,11 +317,9 @@ def analyze_publisher_details(
             RawVisualNote=raw_visual_json,
         )
 
-        json_path = os.path.join(
-            output_folder, f"{book_id}_book_pub_and_dist_details.json"
+        _save_to_json(
+            details, output_folder / f"{book_id}_book_pub_and_dist_details.json"
         )
-        with open(json_path, "w", encoding="utf-8") as json_file:
-            json_file.write(details.model_dump_json(indent=4, ensure_ascii=False))
 
         logfire.info("Analyzed publisher details", book_id=book_id)
         return details
@@ -321,7 +336,7 @@ def analyze_publisher_details(
         )
 
 
-@logfire.instrument
+@task
 def prepare_data_for_ingestion(
     book_id: str,
     binary_images: List[bytes],
@@ -346,62 +361,52 @@ def prepare_data_for_ingestion(
     Returns:
         List[Dict[str, Any]]: A list containing the dictionary to be ingested.
     """
-    book_main_dumped: dict[str, Any] = book_main.model_dump()
-    book_pub_dumped: dict[str, Any] = book_pub.model_dump()
-    book_condition_dumped: dict[str, Any] = book_condition.model_dump()
-    book_content_dumped: dict[str, Any] = book_content.model_dump()
+    # Streamlined by dumping once
+    bm = book_main.model_dump()
+    bp = book_pub.model_dump()
+    bc = book_condition.model_dump()
+    bh = book_content.model_dump()
 
     return [
         {
-            # organization metadata
             "book_id": book_id,
             "images_data": binary_images,
-            # main data of the book
-            "book_title": book_main_dumped.get("title", {}),
+            "book_title": bm.get("title", {}),
             "isbns": {
-                "isbn_10": book_main_dumped.get("isbn_10"),
-                "isbn_13": book_main_dumped.get("isbn_13"),
+                "isbn_10": bm.get("isbn_10"),
+                "isbn_13": bm.get("isbn_13"),
             },
             "language_data": {
-                "languages": book_main_dumped.get("language", []),
-                "scripts": book_main_dumped.get("script", []),
+                "languages": bm.get("language", []),
+                "scripts": bm.get("script", []),
             },
-            "authors": book_main_dumped.get("authors", []),
-            "translators": book_main_dumped.get("translator", []),
-            "published_year": book_pub_dumped.get("published_year", None),
-            # saved the entire generation data
-            "book_main_data": book_main_dumped,
-            # publisher and distribution details
-            "publisher_name": book_pub_dumped.get("publisher_name", {}),
-            "publisher_location": book_pub_dumped.get("publisher_location", {}),
-            "distributor_name": book_pub_dumped.get("distributor_name", {}),
-            "distributor_location": book_pub_dumped.get("distributor_location", {}),
-            # saved the entire generation data
-            "book_pub_and_dist_details": book_pub_dumped,
-            # book condition data
-            "book_condition_summary": book_condition_dumped.get("Condition", ""),
-            "print_type": book_condition_dumped.get("PrintType", ""),
-            # dumping the entire generation data
-            "book_condition_data": book_condition_dumped,
-            # book content hints
-            "book_blurb_text": book_content_dumped.get("bookBlurbText", ""),
-            "bookNERData": book_content_dumped.get("bookNERData", []),
-            "isFiction": book_content_dumped.get("isFiction", False),
-            "book_genre": book_content_dumped.get("bookGenre", []),
-            # dumping the entire content hints generation data
-            "book_content_hints": book_content_dumped,
-            # dumping the raw_analysis
+            "authors": bm.get("authors", []),
+            "translators": bm.get("translator", []),
+            "published_year": bp.get("published_year", None),
+            "book_main_data": bm,
+            "publisher_name": bp.get("publisher_name", {}),
+            "publisher_location": bp.get("publisher_location", {}),
+            "distributor_name": bp.get("distributor_name", {}),
+            "distributor_location": bp.get("distributor_location", {}),
+            "book_pub_and_dist_details": bp,
+            "book_condition_summary": bc.get("Condition", ""),
+            "print_type": bc.get("PrintType", ""),
+            "book_condition_data": bc,
+            "book_blurb_text": bh.get("bookBlurbText", ""),
+            "bookNERData": bh.get("bookNERData", []),
+            "isFiction": bh.get("isFiction", False),
+            "book_genre": bh.get("bookGenre", []),
+            "book_content_hints": bh,
             "raw_analysis": raw_analysis.model_dump(),
         }
     ]
 
 
-@logfire.instrument
-def ingest_to_lancedb(
-    db: DBConnection,
+@task(cache_policy=NO_CACHE)
+async def ingest_to_lancedb(
+    db: AsyncConnection,
     table_name: str,
     data: List[Dict[str, Any]],
-    mode: str = "overwrite",
 ) -> Any:
     """
     Ingest data into LanceDB.
@@ -418,20 +423,33 @@ def ingest_to_lancedb(
     logfire.info(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
+
+    # TODO : in real production, we should not use random table name, instead use one that has been configured
+    letters_lower = string.ascii_lowercase
+    random_three_letters = "".join(
+        random.choices(letters_lower, k=3)
+    )  # this returns missing attributes error, but it works
+
+    table_name = f"{table_name}_{random_three_letters}"
+    await db.create_table(table_name, data)
+
     print(f"Adding the data to the LanceDB table '{table_name}'...")
-    active_tbl = db.create_table(table_name, data=data, mode=mode)
+    # db is already awaited in main_flow
+    active_tbl = await db.open_table(table_name)
+    await active_tbl.add(data)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
 
 
-def main() -> None:
+@flow
+async def process_one_book_flow() -> None:
     """
     Main function to orchestrate the book data extraction and ingestion process.
     """
-    # Configuration
-    sample_book_folder_path = "sample_data/rak-0018_baris-002_buku-12"
-    output_folder_path = "data/output_book_data"
+    # Configuration using Path
+    sample_book_folder_path = Path("sample_data/rak-0018_baris-002_buku-12")
+    output_folder_path = Path("data/output_book_data")
     lance_db_uri = "data/test/lance_db_semi_prod"
     table_name = "active_table_lots_columns"
 
@@ -440,43 +458,49 @@ def main() -> None:
     setup_output_directory(output_folder_path)
 
     # 2. Initialization
-    db = initialize_database(lance_db_uri)
-    ip = initialize_image_processor()
+    db: AsyncConnection = await initialize_database(lance_db_uri)
+    ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
-    images_data = process_image_folder(ip, sample_book_folder_path)
+    images_data: ProcessedBookData = process_image_folder(
+        ip, str(sample_book_folder_path)
+    )
 
     # 4. Save Images Locally
-    book_output_folder = save_images_locally(images_data, output_folder_path)
+    book_output_folder: Path = save_images_locally(images_data, output_folder_path)
 
     # 5. BAML Analysis
     book_id = images_data.book_id
-    baml_images = images_data.baml_images
+    baml_images: list[BamlImagePy] = images_data.baml_images
 
     # Step 5a: Book Condition
-    book_condition = analyze_book_condition(baml_images, book_id, book_output_folder)
+    book_condition: BookConditionData = analyze_book_condition(
+        baml_images, book_id, book_output_folder
+    )
 
     # Step 5b: Raw Analysis
-    raw_analysis = run_raw_analysis(baml_images, book_id, book_output_folder)
-    raw_visual_json = raw_analysis.model_dump_json()
+    raw_analysis: RawAnalysis = run_raw_analysis(
+        baml_images, book_id, book_output_folder
+    )
+    raw_visual_json: str = raw_analysis.model_dump_json()
 
     # Step 5c: Content Hints
-    content_hints = analyze_content_hints(
+    content_hints: BookContentHints = analyze_content_hints(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # Step 5d: Main Data
-    main_data = analyze_main_data(
+    main_data: BookMainData = analyze_main_data(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # Step 5e: Publisher Details
-    pub_details = analyze_publisher_details(
+    pub_details: BookPubAndDistDetails = analyze_publisher_details(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
     # 6. Prepare for Ingestion
-    data_to_ingest = prepare_data_for_ingestion(
+    data_to_ingest: list[dict[str, Any]] = prepare_data_for_ingestion(
         book_id=book_id,
         binary_images=images_data.binary_images,
         book_main=main_data,
@@ -487,8 +511,8 @@ def main() -> None:
     )
 
     # 7. Ingest to LanceDB
-    ingest_to_lancedb(db, table_name, data_to_ingest)
+    await ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(process_one_book_flow())

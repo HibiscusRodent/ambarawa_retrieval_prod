@@ -1,6 +1,4 @@
 # lockfiles from uv
-uv.lock
-uv.lock
 
 # all files inside baml_client
 ./baml_client/
@@ -24,5 +22,6 @@ baml_client/
 # .venv data
 .venv/
 venv/
-uv.lock
-uv.lock
+
+*.lock
+
