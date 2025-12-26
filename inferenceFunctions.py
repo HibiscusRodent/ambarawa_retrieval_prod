@@ -615,7 +615,7 @@ async def process_one_book_flow(
     await ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
-def main() -> None:
+def main_inference() -> None:
     # Default configuration parameters
     book_folder_path = "sample_data/rak-0018_baris-002_buku-12"
     output_folder_path = "data/output_book_data"
@@ -634,4 +634,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main_inference()
