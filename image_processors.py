@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from baml_py import Image as BamlImage
 
-import logfire
+from prefect.logging import get_run_logger
 import psutil
 import os
 
@@ -182,7 +182,8 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logfire.info("Getting a list of books from {path}", path=str(folder_data.path))
+        logger = get_run_logger()
+        logger.info("Getting a list of books from path: %s", str(folder_data.path))
 
         directory = folder_data.path
         try:
@@ -208,10 +209,10 @@ class ImageProcessors:
 
         matched_paths.sort()
         file_names = [p.name for p in matched_paths]
-        logfire.info(
-            "Found {count} supported files in {directory}",
-            count=len(matched_paths),
-            directory=str(directory),
+        logger.info(
+            "Found %d supported files in directory: %s",
+            len(matched_paths),
+            str(directory),
         )
         return file_names, matched_paths
 
@@ -238,17 +239,18 @@ class ImageProcessors:
         Returns:
             "pdf", "images", or "others"
         """
-        logfire.info("Determining book data type...")
+        logger = get_run_logger()
+        logger.info("Determining book data type from %d files", len(file_names))
         extensions = {Path(f).suffix.lower() for f in file_names}
 
         if any(ext in self.pdf_extensions for ext in extensions):
-            logfire.info("Detected PDF files")
+            logger.info("Detected PDF files with extensions: %s", extensions)
             return "pdf"
         elif any(ext in self.images_extensions for ext in extensions):
-            logfire.info("Detected image files")
+            logger.info("Detected image files with extensions: %s", extensions)
             return "images"
         else:
-            logfire.warning("Detected unsupported file types")
+            logger.warning("Detected unsupported file types with extensions: %s", extensions)
             return "others"
 
     @staticmethod
@@ -300,10 +302,12 @@ class ImageProcessors:
                     img.thumbnail(self.max_size, resampling_method)
                     return self._encode_to_outputs(img, self.quality, self.webp_method)
         except Exception as e:
-            logfire.error(
-                "Error processing source {source}: {error}",
-                source=str(source),
-                error=str(e),
+            logger = get_run_logger()
+            logger.error(
+                "Error processing source %s: %s (Exception type: %s)",
+                str(source),
+                str(e),
+                type(e).__name__,
             )
             raise
 
@@ -317,26 +321,29 @@ class ImageProcessors:
         Returns:
             A ProcessedBookData object containing IDs and optimized image data.
         """
+        logger = get_run_logger()
         start_mem = self._get_memory_usage_mb()
-        with logfire.span(
-            "Processing book folder: {book_id}",
-            book_id=folder_data.book_id,
-            path=str(folder_data.path),
-            start_memory_mb=start_mem,
-        ) as span:
-            file_names, file_paths = self.get_book_files(folder_data)
-            data_type = self.determine_book_data_type(file_names)
+        logger.info(
+            "Starting book folder processing - Book ID: %s, Path: %s, Start Memory: %.2f MB",
+            folder_data.book_id,
+            str(folder_data.path),
+            start_mem,
+        )
+        
+        file_names, file_paths = self.get_book_files(folder_data)
+        data_type = self.determine_book_data_type(file_names)
 
-            total_disk_size = sum(p.stat().st_size for p in file_paths)
-            after_files_mem = self._get_memory_usage_mb()
+        total_disk_size = sum(p.stat().st_size for p in file_paths)
+        after_files_mem = self._get_memory_usage_mb()
 
-            logfire.info(
-                "Files located",
-                count=len(file_paths),
-                data_type=data_type,
-                total_disk_size_bytes=total_disk_size,
-                memory_mb=after_files_mem,
-            )
+        logger.info(
+            "Files located - Count: %d, Data Type: %s, Total Disk Size: %d bytes (%.2f MB), Memory After Files: %.2f MB",
+            len(file_paths),
+            data_type,
+            total_disk_size,
+            total_disk_size / (1024 * 1024),
+            after_files_mem,
+        )
 
             # 1. Prepare flat list of processing sources
             sources: list[Path | tuple[Path, int]] = []
@@ -348,19 +355,20 @@ class ImageProcessors:
             elif data_type == "images":
                 sources = cast(list[Path | tuple[Path, int]], file_paths)
             else:
-                logfire.warn(
-                    "No processable files found for book {book_id}",
-                    book_id=folder_data.book_id,
+                logger.warning(
+                    "No processable files found for book ID: %s (Data Type: %s)",
+                    folder_data.book_id,
+                    data_type,
                 )
                 return ProcessedBookData(
                     book_id=folder_data.book_id, base64_images=[], binary_images=[]
                 )
 
             after_sources_mem = self._get_memory_usage_mb()
-            logfire.info(
-                "Sources prepared",
-                item_count=len(sources),
-                memory_mb=after_sources_mem,
+            logger.info(
+                "Sources prepared - Item Count: %d, Memory: %.2f MB",
+                len(sources),
+                after_sources_mem,
             )
 
             # 2. Parallel execution of the unified pipeline
@@ -369,7 +377,7 @@ class ImageProcessors:
             )
 
             after_parallel_mem = self._get_memory_usage_mb()
-            logfire.info("Parallel processing complete", memory_mb=after_parallel_mem)
+            logger.info("Parallel processing complete - Memory: %.2f MB, Results Count: %d", after_parallel_mem, len(results))
 
             if not results:
                 return ProcessedBookData(
@@ -381,31 +389,36 @@ class ImageProcessors:
             base64_images, binary_images = map(list, zip(*results))
 
             baml_images: list[BamlImage] = []
-            for base64_image in base64_images:
+            for idx, base64_image in enumerate(base64_images):
                 try:
                     # NOTE: our encoder uses WEBP in _encode_to_outputs
                     baml_images.append(
                         BamlImage.from_base64("image/webp", base64_image)
                     )
                 except Exception as e:
-                    logfire.error("Error creating BAML image: {error}", error=str(e))
+                    logger.error(
+                        "Error creating BAML image at index %d: %s (Exception type: %s)",
+                        idx,
+                        str(e),
+                        type(e).__name__,
+                    )
                     continue
 
             total_base64_size = sum(len(s) for s in base64_images)
             total_binary_size = sum(len(b) for b in binary_images)
             end_mem = self._get_memory_usage_mb()
 
-            logfire.info(
-                "Processing complete",
-                image_count=len(base64_images),
-                total_base64_size_bytes=total_base64_size,
-                total_binary_size_bytes=total_binary_size,
-                memory_mb=end_mem,
+            logger.info(
+                "Processing complete - Book ID: %s, Image Count: %d, Total Base64 Size: %d bytes (%.2f MB), Total Binary Size: %d bytes (%.2f MB), Final Memory: %.2f MB, Memory Delta: %.2f MB",
+                folder_data.book_id,
+                len(base64_images),
+                total_base64_size,
+                total_base64_size / (1024 * 1024),
+                total_binary_size,
+                total_binary_size / (1024 * 1024),
+                end_mem,
+                end_mem - start_mem,
             )
-
-            span.set_attribute("final_memory_mb", end_mem)
-            span.set_attribute("total_base64_size", total_base64_size)
-            span.set_attribute("total_binary_size", total_binary_size)
 
             return ProcessedBookData(
                 book_id=folder_data.book_id,
