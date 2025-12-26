@@ -372,7 +372,7 @@ class ImageProcessors:
         )
 
         # 2. Parallel execution of the unified pipeline
-        results = Parallel(n_jobs=self.n_jobs)(
+        results: list[tuple[str, bytes]] = Parallel(n_jobs=self.n_jobs)(
             delayed(self._process_single_source)(s) for s in sources
         )
 
