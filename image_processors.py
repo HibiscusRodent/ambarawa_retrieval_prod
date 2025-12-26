@@ -345,87 +345,87 @@ class ImageProcessors:
             after_files_mem,
         )
 
-            # 1. Prepare flat list of processing sources
-            sources: list[Path | tuple[Path, int]] = []
-            if data_type == "pdf":
-                for path in file_paths:
-                    if path.suffix.lower() in self.pdf_extensions:
-                        with fitz.open(path) as doc:
-                            sources.extend([(path, i) for i in range(len(doc))])
-            elif data_type == "images":
-                sources = cast(list[Path | tuple[Path, int]], file_paths)
-            else:
-                logger.warning(
-                    "No processable files found for book ID: %s (Data Type: %s)",
-                    folder_data.book_id,
-                    data_type,
-                )
-                return ProcessedBookData(
-                    book_id=folder_data.book_id, base64_images=[], binary_images=[]
-                )
-
-            after_sources_mem = self._get_memory_usage_mb()
-            logger.info(
-                "Sources prepared - Item Count: %d, Memory: %.2f MB",
-                len(sources),
-                after_sources_mem,
-            )
-
-            # 2. Parallel execution of the unified pipeline
-            results = Parallel(n_jobs=self.n_jobs)(
-                delayed(self._process_single_source)(s) for s in sources
-            )
-
-            after_parallel_mem = self._get_memory_usage_mb()
-            logger.info("Parallel processing complete - Memory: %.2f MB, Results Count: %d", after_parallel_mem, len(results))
-
-            if not results:
-                return ProcessedBookData(
-                    book_id=folder_data.book_id, base64_images=[], binary_images=[]
-                )
-
-            # 3. Unzip results into separate lists
-            # zip(*results) returns two tuples, we convert them to lists
-            base64_images, binary_images = map(list, zip(*results))
-
-            baml_images: list[BamlImage] = []
-            for idx, base64_image in enumerate(base64_images):
-                try:
-                    # NOTE: our encoder uses WEBP in _encode_to_outputs
-                    baml_images.append(
-                        BamlImage.from_base64("image/webp", base64_image)
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Error creating BAML image at index %d: %s (Exception type: %s)",
-                        idx,
-                        str(e),
-                        type(e).__name__,
-                    )
-                    continue
-
-            total_base64_size = sum(len(s) for s in base64_images)
-            total_binary_size = sum(len(b) for b in binary_images)
-            end_mem = self._get_memory_usage_mb()
-
-            logger.info(
-                "Processing complete - Book ID: %s, Image Count: %d, Total Base64 Size: %d bytes (%.2f MB), Total Binary Size: %d bytes (%.2f MB), Final Memory: %.2f MB, Memory Delta: %.2f MB",
+        # 1. Prepare flat list of processing sources
+        sources: list[Path | tuple[Path, int]] = []
+        if data_type == "pdf":
+            for path in file_paths:
+                if path.suffix.lower() in self.pdf_extensions:
+                    with fitz.open(path) as doc:
+                        sources.extend([(path, i) for i in range(len(doc))])
+        elif data_type == "images":
+            sources = cast(list[Path | tuple[Path, int]], file_paths)
+        else:
+            logger.warning(
+                "No processable files found for book ID: %s (Data Type: %s)",
                 folder_data.book_id,
-                len(base64_images),
-                total_base64_size,
-                total_base64_size / (1024 * 1024),
-                total_binary_size,
-                total_binary_size / (1024 * 1024),
-                end_mem,
-                end_mem - start_mem,
+                data_type,
+            )
+            return ProcessedBookData(
+                book_id=folder_data.book_id, base64_images=[], binary_images=[]
             )
 
+        after_sources_mem = self._get_memory_usage_mb()
+        logger.info(
+            "Sources prepared - Item Count: %d, Memory: %.2f MB",
+            len(sources),
+            after_sources_mem,
+        )
+
+        # 2. Parallel execution of the unified pipeline
+        results = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._process_single_source)(s) for s in sources
+        )
+
+        after_parallel_mem = self._get_memory_usage_mb()
+        logger.info("Parallel processing complete - Memory: %.2f MB, Results Count: %d", after_parallel_mem, len(results))
+
+        if not results:
             return ProcessedBookData(
-                book_id=folder_data.book_id,
-                base64_images=cast(list[str], base64_images),
-                binary_images=cast(list[bytes], binary_images),
-                baml_images=baml_images,
+                book_id=folder_data.book_id, base64_images=[], binary_images=[]
             )
+
+        # 3. Unzip results into separate lists
+        # zip(*results) returns two tuples, we convert them to lists
+        base64_images, binary_images = map(list, zip(*results))
+
+        baml_images: list[BamlImage] = []
+        for idx, base64_image in enumerate(base64_images):
+            try:
+                # NOTE: our encoder uses WEBP in _encode_to_outputs
+                baml_images.append(
+                    BamlImage.from_base64("image/webp", base64_image)
+                )
+            except Exception as e:
+                logger.error(
+                    "Error creating BAML image at index %d: %s (Exception type: %s)",
+                    idx,
+                    str(e),
+                    type(e).__name__,
+                )
+                continue
+
+        total_base64_size = sum(len(s) for s in base64_images)
+        total_binary_size = sum(len(b) for b in binary_images)
+        end_mem = self._get_memory_usage_mb()
+
+        logger.info(
+            "Processing complete - Book ID: %s, Image Count: %d, Total Base64 Size: %d bytes (%.2f MB), Total Binary Size: %d bytes (%.2f MB), Final Memory: %.2f MB, Memory Delta: %.2f MB",
+            folder_data.book_id,
+            len(base64_images),
+            total_base64_size,
+            total_base64_size / (1024 * 1024),
+            total_binary_size,
+            total_binary_size / (1024 * 1024),
+            end_mem,
+            end_mem - start_mem,
+        )
+
+        return ProcessedBookData(
+            book_id=folder_data.book_id,
+            base64_images=cast(list[str], base64_images),
+            binary_images=cast(list[bytes], binary_images),
+            baml_images=baml_images,
+        )
 
 
 def main() -> None:
