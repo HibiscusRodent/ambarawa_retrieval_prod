@@ -2,18 +2,15 @@ from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
 import shutil
-import asyncio
 import random
 import string
 
 from rich.traceback import install
 
 
-
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
-from lancedb import connect_async
-from lancedb.db import AsyncConnection
+from lancedb import connect
 
 from image_processors import ImageProcessors, BookFolderPathData
 
@@ -36,14 +33,13 @@ from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 
 
-
 @task
 def configure_environment() -> None:
     """
     Load environment variables and configure the environment.
     """
     logger = get_run_logger()
-    rich_traceback   = install()
+    install()
     env_keys_loader = load_dotenv()
     logger.info(f"Loaded environment variables: {env_keys_loader}")
     logger.info("Environment configured and variables loaded.")
@@ -74,7 +70,7 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
 
 
 @task
-async def initialize_database(uri: str) -> AsyncConnection:
+def initialize_database(uri: str):
     """
     Initialize the LanceDB connection.
 
@@ -82,10 +78,10 @@ async def initialize_database(uri: str) -> AsyncConnection:
         uri: The URI for the LanceDB database.
 
     Returns:
-        AsyncConnection: The connected LanceDB instance.
+        The connected LanceDB instance.
     """
     logger = get_run_logger()
-    db = await connect_async(uri)
+    db = connect(uri)
     logger.info("Connected to LanceDB at URI: %s", uri)
     return db
 
@@ -465,8 +461,8 @@ def prepare_data_for_ingestion(
 
 
 @task(cache_policy=NO_CACHE)
-async def ingest_to_lancedb(
-    db: AsyncConnection,
+def ingest_to_lancedb(
+    db,
     table_name: str,
     data: List[Dict[str, Any]],
 ) -> Any:
@@ -497,12 +493,11 @@ async def ingest_to_lancedb(
 
     table_name = f"{table_name}_{random_three_letters}"
     logger.info("Creating table with name: %s", table_name)
-    await db.create_table(table_name, data)
+    db.create_table(table_name, data)
 
     logger.info("Adding data to LanceDB table: %s", table_name)
-    # db is already awaited in main_flow
-    active_tbl = await db.open_table(table_name)
-    await active_tbl.add(data)
+    active_tbl = db.open_table(table_name)
+    active_tbl.add(data)
     logger.info(
         "Data ingestion completed successfully - Table: %s, Records Added: %d",
         table_name,
@@ -512,7 +507,7 @@ async def ingest_to_lancedb(
 
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
-async def process_one_book_flow(
+def process_one_book_flow(
     book_folder_path: str,
     output_folder_path: str,
     lance_db_uri: str,
@@ -542,7 +537,7 @@ async def process_one_book_flow(
     setup_output_directory(output_folder)
 
     # 2. Initialization
-    db: AsyncConnection = await initialize_database(lance_db_uri)
+    db = initialize_database(lance_db_uri)
     ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
@@ -612,26 +607,24 @@ async def process_one_book_flow(
     )
 
     # 7. Ingest to LanceDB
-    await ingest_to_lancedb(db, table_name, data_to_ingest)
+    _ = ingest_to_lancedb(db, table_name, data_to_ingest)
 
 
-def main_inference() -> None:
+def sample_inference() -> None:
     # Default configuration parameters
     book_folder_path = "sample_data/rak-0018_baris-002_buku-12"
     output_folder_path = "data/output_book_data"
     lance_db_uri = "data/test/lance_db_semi_prod"
     table_name = "active_table_lots_columns"
 
-    asyncio.run(
-        process_one_book_flow(
-            book_folder_path=book_folder_path,
-            output_folder_path=output_folder_path,
-            lance_db_uri=lance_db_uri,
-            table_name=table_name,
-        )
+    process_one_book_flow(
+        book_folder_path=book_folder_path,
+        output_folder_path=output_folder_path,
+        lance_db_uri=lance_db_uri,
+        table_name=table_name,
     )
     return None
 
 
 if __name__ == "__main__":
-    main_inference()
+    sample_inference()
