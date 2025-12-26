@@ -1,4 +1,3 @@
-from PIL.ImagePalette import random
 from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
@@ -32,6 +31,7 @@ from dotenv import load_dotenv
 # TODO: Remove the logfire logging since we are using prefect logging now
 import logfire
 
+
 @task
 def configure_environment() -> None:
     """
@@ -40,6 +40,7 @@ def configure_environment() -> None:
     load_dotenv()
     logfire.configure()
     logfire.info("Environment configured and Logfire initialized.")
+
 
 @task
 def setup_output_directory(output_path: Path) -> None:
@@ -50,6 +51,7 @@ def setup_output_directory(output_path: Path) -> None:
         output_path: The Path to the output directory.
     """
     output_path.mkdir(parents=True, exist_ok=True)
+
 
 @task
 def _save_to_json(data: BaseModel, output_path: Path) -> None:
@@ -62,6 +64,7 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
     """
     with output_path.open("w", encoding="utf-8") as f:
         f.write(data.model_dump_json(indent=4, ensure_ascii=False))
+
 
 @task
 @task
@@ -79,6 +82,7 @@ async def initialize_database(uri: str) -> AsyncConnection:
     logfire.info("Connected to LanceDB", uri=uri)
     return db
 
+
 @task
 def initialize_image_processor() -> ImageProcessors:
     """
@@ -88,6 +92,7 @@ def initialize_image_processor() -> ImageProcessors:
         ImageProcessors: An instance of ImageProcessors.
     """
     return ImageProcessors()
+
 
 @task
 @logfire.instrument
@@ -112,6 +117,7 @@ def process_image_folder(
         image_count=len(data.binary_images),
     )
     return data
+
 
 @task
 @logfire.instrument
@@ -417,14 +423,16 @@ async def ingest_to_lancedb(
     logfire.info(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
-    
+
     # TODO : in real production, we should not use random table name, instead use one that has been configured
     letters_lower = string.ascii_lowercase
-    random_three_letters = ''.join(random.choices(letters_lower, k=3)) # this returns missing attributes error, but it works
-    
+    random_three_letters = "".join(
+        random.choices(letters_lower, k=3)
+    )  # this returns missing attributes error, but it works
+
     table_name = f"{table_name}_{random_three_letters}"
     await db.create_table(table_name, data)
-    
+
     print(f"Adding the data to the LanceDB table '{table_name}'...")
     # db is already awaited in main_flow
     active_tbl = await db.open_table(table_name)
@@ -454,7 +462,9 @@ async def process_one_book_flow() -> None:
     ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
-    images_data: ProcessedBookData = process_image_folder(ip, str(sample_book_folder_path))
+    images_data: ProcessedBookData = process_image_folder(
+        ip, str(sample_book_folder_path)
+    )
 
     # 4. Save Images Locally
     book_output_folder: Path = save_images_locally(images_data, output_folder_path)
@@ -464,10 +474,14 @@ async def process_one_book_flow() -> None:
     baml_images: list[BamlImagePy] = images_data.baml_images
 
     # Step 5a: Book Condition
-    book_condition: BookConditionData = analyze_book_condition(baml_images, book_id, book_output_folder)
+    book_condition: BookConditionData = analyze_book_condition(
+        baml_images, book_id, book_output_folder
+    )
 
     # Step 5b: Raw Analysis
-    raw_analysis: RawAnalysis = run_raw_analysis(baml_images, book_id, book_output_folder)
+    raw_analysis: RawAnalysis = run_raw_analysis(
+        baml_images, book_id, book_output_folder
+    )
     raw_visual_json: str = raw_analysis.model_dump_json()
 
     # Step 5c: Content Hints
