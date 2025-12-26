@@ -1,8 +1,11 @@
+from PIL.ImagePalette import random
 from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
 import shutil
 import asyncio
+import random
+import string
 
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
@@ -398,7 +401,6 @@ async def ingest_to_lancedb(
     db: AsyncConnection,
     table_name: str,
     data: List[Dict[str, Any]],
-    mode: str = "overwrite",
 ) -> Any:
     """
     Ingest data into LanceDB.
@@ -415,11 +417,18 @@ async def ingest_to_lancedb(
     logfire.info(
         "Starting data ingestion", table_name=table_name, record_count=len(data)
     )
+    
+    # TODO : in real production, we should not use random table name, instead use one that has been configured
+    letters_lower = string.ascii_lowercase
+    random_three_letters = ''.join(random.choices(letters_lower, k=3)) # this returns missing attributes error, but it works
+    
+    table_name = f"{table_name}_{random_three_letters}"
+    await db.create_table(table_name, data)
+    
     print(f"Adding the data to the LanceDB table '{table_name}'...")
     # db is already awaited in main_flow
-    if mode == "overwrite":
-        await db.drop_table(table_name, ignore_missing=True)
-    active_tbl = await db.create_table(table_name, data=data)
+    active_tbl = await db.open_table(table_name)
+    await active_tbl.add(data)
     print("Data ingestion completed.")
     logfire.info("Data ingestion completed")
     return active_tbl
