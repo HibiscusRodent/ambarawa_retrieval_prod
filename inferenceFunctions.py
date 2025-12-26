@@ -417,12 +417,16 @@ def prepare_data_for_ingestion(
     Returns:
         List[Dict[str, Any]]: A list containing the dictionary to be ingested.
     """
+    logger = get_run_logger()
+    
+    logger.debug("Dumping data for ingestion for Book ID: %s", book_id)
     # Streamlined by dumping once
     bm = book_main.model_dump()
     bp = book_pub.model_dump()
     bc = book_condition.model_dump()
     bh = book_content.model_dump()
-
+    
+    logger.debug("Constructed data for ingestion for Book ID: %s", book_id)
     return [
         {
             "book_id": book_id,
@@ -487,13 +491,13 @@ def ingest_to_lancedb(
     # throw an exception that abort the process
     try:
         active_tbl = db.open_table(table_name)
-        print(f"Successfully opened table: {table_name}")
+        logger.info(f"Successfully opened table: {table_name}")
         active_tbl = active_tbl.add(data)
         return active_tbl
     
     except Exception as e:
-        print("Please create the table before proceeding. Table may not exist yet.")
-        print(f"Here's a list of the available tables: {db.list_tables()}")
+        logger.error("Please create the table before proceeding. Table may not exist yet.")
+        logger.error(f"Here's a list of the available tables: {db.list_tables()}")
         raise RuntimeError(f"Failed to open table '{table_name}': {e}") from e
     return None
 
