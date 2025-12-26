@@ -513,6 +513,10 @@ async def process_one_book_flow() -> None:
     # 7. Ingest to LanceDB
     await ingest_to_lancedb(db, table_name, data_to_ingest)
 
+def main() -> None:
+    asyncio.run(process_one_book_flow())
+    return None
+
 
 if __name__ == "__main__":
-    asyncio.run(process_one_book_flow())
+    main()
