@@ -22,11 +22,6 @@ import os
 # for parallelizations
 from joblib import Parallel, delayed
 
-# rich traceback to show better debugging display
-from rich.traceback import install
-
-install()  # activate pretty error printing using rich traceback
-
 
 class BookFolderPathData(BaseModel):
     """
@@ -372,7 +367,7 @@ class ImageProcessors:
         )
 
         # 2. Parallel execution of the unified pipeline
-        results = cast(
+        results: list[tuple[str, bytes]] = cast(
             list[tuple[str, bytes]],
             Parallel(n_jobs=self.n_jobs)(
                 delayed(self._process_single_source)(s) for s in sources

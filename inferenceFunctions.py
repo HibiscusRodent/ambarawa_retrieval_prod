@@ -6,6 +6,10 @@ import asyncio
 import random
 import string
 
+from rich.traceback import install
+
+
+
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
 from lancedb import connect_async
@@ -32,13 +36,16 @@ from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 
 
+
 @task
 def configure_environment() -> None:
     """
     Load environment variables and configure the environment.
     """
     logger = get_run_logger()
-    load_dotenv()
+    rich_traceback   = install()
+    env_keys_loader = load_dotenv()
+    logger.info(f"Loaded environment variables: {env_keys_loader}")
     logger.info("Environment configured and variables loaded.")
 
 
