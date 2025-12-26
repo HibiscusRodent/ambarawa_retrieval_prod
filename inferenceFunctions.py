@@ -485,19 +485,17 @@ def ingest_to_lancedb(
     # open a table from the active database,
     # lancedb will return an error if the table does not exist
     # throw an exception that abort the process
-    
     try:
-        active_table = db.open_table(table_name)
-        logger.info("Table %s exists. Appending data.", table_name)
-        
-        return active_table
+        active_tbl = db.open_table(table_name)
+        print(f"Successfully opened table: {table_name}")
+        active_tbl = active_tbl.add(data)
+        return active_tbl
     
     except Exception as e:
         print("Please create the table before proceeding. Table may not exist yet.")
         print(f"Here's a list of the available tables: {db.list_tables()}")
         raise RuntimeError(f"Failed to open table '{table_name}': {e}") from e
     return None
-    
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
 def process_one_book_flow(

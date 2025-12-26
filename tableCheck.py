@@ -1,5 +1,3 @@
-
-
 def check_table_exists(active_db, table_name):
     """
     A simple function to open a table in the lanceDB instance. Since
