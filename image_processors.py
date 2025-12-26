@@ -372,8 +372,11 @@ class ImageProcessors:
         )
 
         # 2. Parallel execution of the unified pipeline
-        results: list[tuple[str, bytes]] = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._process_single_source)(s) for s in sources
+        results = cast(
+            list[tuple[str, bytes]],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._process_single_source)(s) for s in sources
+            ),
         )
 
         after_parallel_mem = self._get_memory_usage_mb()
