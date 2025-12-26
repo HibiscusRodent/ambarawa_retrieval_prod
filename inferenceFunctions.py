@@ -2,8 +2,6 @@ from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
 import shutil
-import random
-import string
 
 from rich.traceback import install
 
@@ -484,13 +482,22 @@ def ingest_to_lancedb(
         table_name,
         len(data),
     )
-
-    # TODO : in real production, we should not use random table name, instead use one that has been configured
+    # open a table from the active database,
+    # lancedb will return an error if the table does not exist
+    # throw an exception that abort the process
     
-    active_table = db.open_table(table_name)
+    try:
+        active_table = db.open_table(table_name)
+        logger.info("Table %s exists. Appending data.", table_name)
+        
+        return active_table
     
-    return active_table
-
+    except Exception as e:
+        print("Please create the table before proceeding. Table may not exist yet.")
+        print(f"Here's a list of the available tables: {db.list_tables()}")
+        raise RuntimeError(f"Failed to open table '{table_name}': {e}") from e
+    return None
+    
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
 def process_one_book_flow(
