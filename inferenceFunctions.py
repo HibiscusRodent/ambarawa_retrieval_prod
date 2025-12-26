@@ -445,7 +445,12 @@ async def ingest_to_lancedb(
 
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
-async def process_one_book_flow() -> None:
+async def process_one_book_flow(
+    book_folder_path: str,
+    output_folder_path: str,
+    lance_db_uri: str,
+    table_name: str,
+) -> None:
     """
     Main function to orchestrate the book data extraction and ingestion process.
 
@@ -454,12 +459,16 @@ async def process_one_book_flow() -> None:
     - Phase 1: book_condition and raw_analysis run in parallel (no dependencies)
     - Phase 2: content_hints, main_data, and pub_details run in parallel
       (all depend on raw_analysis result)
+
+    Args:
+        book_folder_path: Path to the folder containing book images to process.
+        output_folder_path: Path to the directory where output data will be saved.
+        lance_db_uri: URI for the LanceDB database connection.
+        table_name: Name of the table in LanceDB for data ingestion.
     """
     # Configuration using Path
-    sample_book_folder_path = Path("sample_data/rak-0018_baris-002_buku-12")
-    output_folder_path = Path("data/output_book_data")
-    lance_db_uri = "data/test/lance_db_semi_prod"
-    table_name = "active_table_lots_columns"
+    sample_book_folder_path = Path(book_folder_path)
+    output_folder_path = Path(output_folder_path)
 
     # 1. Setup
     configure_environment()
@@ -540,7 +549,20 @@ async def process_one_book_flow() -> None:
 
 
 def main() -> None:
-    asyncio.run(process_one_book_flow())
+    # Default configuration parameters
+    book_folder_path = "sample_data/rak-0018_baris-002_buku-12"
+    output_folder_path = "data/output_book_data"
+    lance_db_uri = "data/test/lance_db_semi_prod"
+    table_name = "active_table_lots_columns"
+
+    asyncio.run(
+        process_one_book_flow(
+            book_folder_path=book_folder_path,
+            output_folder_path=output_folder_path,
+            lance_db_uri=lance_db_uri,
+            table_name=table_name,
+        )
+    )
     return None
 
 
