@@ -25,3 +25,4 @@ venv/
 
 *.lock
 
+uv.lock
