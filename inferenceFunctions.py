@@ -486,24 +486,10 @@ def ingest_to_lancedb(
     )
 
     # TODO : in real production, we should not use random table name, instead use one that has been configured
-    letters_lower = string.ascii_lowercase
-    random_three_letters = "".join(
-        random.choices(letters_lower, k=3)
-    )  # this returns missing attributes error, but it works
-
-    table_name = f"{table_name}_{random_three_letters}"
-    logger.info("Creating table with name: %s", table_name)
-    db.create_table(table_name, data)
-
-    logger.info("Adding data to LanceDB table: %s", table_name)
-    active_tbl = db.open_table(table_name)
-    active_tbl.add(data)
-    logger.info(
-        "Data ingestion completed successfully - Table: %s, Records Added: %d",
-        table_name,
-        len(data),
-    )
-    return active_tbl
+    
+    active_table = db.open_table(table_name)
+    
+    return active_table
 
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
