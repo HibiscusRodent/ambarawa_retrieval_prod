@@ -25,7 +25,9 @@ from baml_client.types import (
 from typing import Any, List, Dict
 from pydantic import BaseModel
 from prefect import task, flow
+from prefect.futures import wait, PrefectFuture
 from prefect.cache_policies import NO_CACHE
+from prefect_dask import DaskTaskRunner
 from dotenv import load_dotenv
 
 # TODO: Remove the logfire logging since we are using prefect logging now
@@ -442,10 +444,16 @@ async def ingest_to_lancedb(
     return active_tbl
 
 
-@flow
+@flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
 async def process_one_book_flow() -> None:
     """
     Main function to orchestrate the book data extraction and ingestion process.
+
+    This flow uses DaskTaskRunner to execute BAML inference tasks in parallel where possible.
+    The parallelization strategy is:
+    - Phase 1: book_condition and raw_analysis run in parallel (no dependencies)
+    - Phase 2: content_hints, main_data, and pub_details run in parallel
+      (all depend on raw_analysis result)
     """
     # Configuration using Path
     sample_book_folder_path = Path("sample_data/rak-0018_baris-002_buku-12")
@@ -469,35 +477,52 @@ async def process_one_book_flow() -> None:
     # 4. Save Images Locally
     book_output_folder: Path = save_images_locally(images_data, output_folder_path)
 
-    # 5. BAML Analysis
+    # 5. BAML Analysis with parallel execution
     book_id = images_data.book_id
     baml_images: list[BamlImagePy] = images_data.baml_images
 
-    # Step 5a: Book Condition
-    book_condition: BookConditionData = analyze_book_condition(
+    # Phase 1: Submit independent tasks in parallel
+    # book_condition and raw_analysis don't depend on each other
+    book_condition_future = analyze_book_condition.submit(
+        baml_images, book_id, book_output_folder
+    )
+    raw_analysis_future = run_raw_analysis.submit(
         baml_images, book_id, book_output_folder
     )
 
-    # Step 5b: Raw Analysis
-    raw_analysis: RawAnalysis = run_raw_analysis(
-        baml_images, book_id, book_output_folder
-    )
+    # Wait for Phase 1 to complete and get results
+    phase_1_futures: list[PrefectFuture[Any]] = [
+        book_condition_future,
+        raw_analysis_future,
+    ]
+    wait(phase_1_futures)
+    book_condition: BookConditionData = book_condition_future.result()
+    raw_analysis: RawAnalysis = raw_analysis_future.result()
     raw_visual_json: str = raw_analysis.model_dump_json()
 
-    # Step 5c: Content Hints
-    content_hints: BookContentHints = analyze_content_hints(
+    # Phase 2: Submit dependent tasks in parallel
+    # content_hints, main_data, and pub_details all depend on raw_visual_json
+    # but are independent of each other
+    content_hints_future = analyze_content_hints.submit(
+        baml_images, book_id, raw_visual_json, book_output_folder
+    )
+    main_data_future = analyze_main_data.submit(
+        baml_images, book_id, raw_visual_json, book_output_folder
+    )
+    pub_details_future = analyze_publisher_details.submit(
         baml_images, book_id, raw_visual_json, book_output_folder
     )
 
-    # Step 5d: Main Data
-    main_data: BookMainData = analyze_main_data(
-        baml_images, book_id, raw_visual_json, book_output_folder
-    )
-
-    # Step 5e: Publisher Details
-    pub_details: BookPubAndDistDetails = analyze_publisher_details(
-        baml_images, book_id, raw_visual_json, book_output_folder
-    )
+    # Wait for Phase 2 to complete and get results
+    phase_2_futures: list[PrefectFuture[Any]] = [
+        content_hints_future,
+        main_data_future,
+        pub_details_future,
+    ]
+    wait(phase_2_futures)
+    content_hints: BookContentHints = content_hints_future.result()
+    main_data: BookMainData = main_data_future.result()
+    pub_details: BookPubAndDistDetails = pub_details_future.result()
 
     # 6. Prepare for Ingestion
     data_to_ingest: list[dict[str, Any]] = prepare_data_for_ingestion(
@@ -512,6 +537,7 @@ async def process_one_book_flow() -> None:
 
     # 7. Ingest to LanceDB
     await ingest_to_lancedb(db, table_name, data_to_ingest)
+
 
 def main() -> None:
     asyncio.run(process_one_book_flow())
