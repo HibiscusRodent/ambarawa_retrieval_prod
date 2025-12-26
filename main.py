@@ -8,7 +8,7 @@ output_folder_path = "data/output_book_data"
 lance_db_uri = "data/test/lance_db_semi_prod"
 table_name = "active_table_lots_columns"
 
-
+@task
 def run_single_inference(
     book_folder_path: str,
     output_folder_path: str,
@@ -30,6 +30,7 @@ def run_single_inference(
         )
     return None
 
+@flow
 def main_inference_multiple_books(
     book_folder_paths: list[str],
     output_folder_path: str,
