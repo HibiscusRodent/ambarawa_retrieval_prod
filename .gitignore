@@ -23,5 +23,4 @@ baml_client/
 .venv/
 venv/
 
-*.lock
-
+uv.lock
