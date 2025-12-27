@@ -17,7 +17,7 @@ sample_data/
 
 # lance datas
 *.lance
-# baml_client/
+baml_client/
 
 # .venv data
 .venv/
