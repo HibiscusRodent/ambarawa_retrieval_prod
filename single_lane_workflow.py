@@ -9,12 +9,14 @@ from image_processors import ImageProcessors
 from typing import Any
 from logger import logger
 import pprint
+from dotenv import load_dotenv
 
+load_dotenv()
 
 
 
 # get some basic folder paths
-book_folder_path = Path("sample_data/rak-0018_baris-002_buku-12")
+book_folder_path = Path("sample_data/rak-0003_baris-005_buku-30")
 output_folder_path = Path("data/output_book_data/pydantic_try")
 lance_db_uri = Path("data/test/single_lane_experiment")
 table_name = "run_single_lane"
@@ -80,5 +82,6 @@ inference_data = analyze_book_condition(baml_images, book_id, output_folder_path
 active_table = active_db.open_table(table_name)
 logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
 
+# insert the inference data into the lance db table
 active_table = active_table.add(inference_data)
 logger.info(f"Inserted inference data for Book ID: {book_id} into LanceDB table '{table_name}'.")
