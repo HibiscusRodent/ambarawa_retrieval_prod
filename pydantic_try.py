@@ -1,5 +1,4 @@
 from image_processors import ProcessedBookData
-from lancedb.pydantic import LanceModel
 from pathlib import Path
 from typing import Any
 import pprint
@@ -19,8 +18,7 @@ from baml_client.types import (
 )
 
 # Import the LanceModel schema
-# from ConditionDataSchema import LanceConditionData
-from bamlToLanceSchema import LanceBookConditionData
+from ConditionDataSchema import LanceConditionData
 from pydantic_to_lance_db_schema import pydantic_to_arrow_schema
 
 
@@ -92,23 +90,22 @@ logger.info("Connected to LanceDB at URI: %s", lance_db_uri)
 processor = ImageProcessors()
 logger.info("Initialized ImageProcessors.")
 
-from ConditionDataSchema import LanceConditionData
-
-    
 # create an empty lance db table using the schema
 # the schema here is not imported directly from the BAML client types,
 # but rather wrapped in a LanceModel for LanceDB compatibility
-active_db.create_table("test_empty_table", schema = LanceConditionData, mode="overwrite")
+active_db.create_table("test_empty_table", schema=LanceConditionData, mode="overwrite")
 logger.info("Created LanceDB table with LanceConditionData schema.")
 
 
-# this one use the baml client type directly wrapped in LanceModel
+# this one use the baml client type directly from the BAML types
 baml_direct_schema = pydantic_to_arrow_schema(BookConditionData)
 logger.info("Generated Arrow schema from BookConditionData: %s", baml_direct_schema)
 # if this fails, it means there is something wrong with the pydantic_to_arrow_schema function
 # that makes it unable to handle the BAML client types directly
 
-active_db.create_table("table_with_baml_direct_schema", schema = baml_direct_schema, mode="overwrite")
+active_db.create_table(
+    "table_with_baml_direct_schema", schema=baml_direct_schema, mode="overwrite"
+)
 logger.info("Created LanceDB table with BookConditionData schema directly.")
 # if this fails, it means LanceDB has problem handling the schema generated
 # from the BAML client types directly
