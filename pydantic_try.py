@@ -1,4 +1,5 @@
 from image_processors import ProcessedBookData
+from lancedb.pydantic import LanceModel
 from pathlib import Path
 from typing import Any
 import pprint
@@ -97,6 +98,9 @@ try:
 except Exception:
     pass  # Table doesn't exist, which is fine
 
+from ConditionDataSchema import LanceConditionData
+
+    
 # create an empty lance db table using the schema
-active_db.create_table("test_empty_table", schema = LanceBookConditionData)
-logger.info("Created LanceDB table with LanceBookConditionData schema.")
+active_db.create_table("test_empty_table", schema = LanceConditionData)
+logger.info("Created LanceDB table with LanceConditionData schema.")

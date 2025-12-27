@@ -36,10 +36,10 @@ class PhysicalObservationUnit(BaseModel):
     readability_impact: str
 
 
-class PhysicalObservation(BaseModel):
-    """Collection of physical observations for the book."""
+# class PhysicalObservation(BaseModel):
+#     """Collection of physical observations for the book."""
 
-    observations: list[PhysicalObservationUnit]
+#     observations: list[PhysicalObservationUnit]
 
 
 class PrintTypeAnalysis(BaseModel):
@@ -59,7 +59,7 @@ class LanceConditionData(LanceModel):
     information into a single record suitable for storage in LanceDB.
     """
 
-    physical_observations: PhysicalObservation
+    physical_observations: list[PhysicalObservationUnit]
     condition_analysis: ConditionAnalysis
     print_type_analysis: PrintTypeAnalysis
     condition: str
