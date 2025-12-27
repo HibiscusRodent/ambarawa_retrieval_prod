@@ -1,4 +1,3 @@
-from typing import List
 from lancedb.pydantic import LanceModel, Vector
 
 
@@ -16,11 +15,11 @@ class ConditionAnalysis:
 class PhysicalObservation:
     image_number: int
     book_component: str
-    observed_features: List[str]
+    observed_features: list[str]
     severity_level: str
     readability_impact: str
 
-    def __init__(self, image_number: int, book_component: str, observed_features: List[str], severity_level: str, readability_impact: str) -> None:
+    def __init__(self, image_number: int, book_component: str, observed_features: list[str], severity_level: str, readability_impact: str) -> None:
         self.image_number = image_number
         self.book_component = book_component
         self.observed_features = observed_features
@@ -31,10 +30,10 @@ class PhysicalObservation:
 class PrintTypeAnalysis:
     cover_material: str
     binding_type: str
-    print_quality_indicators: List[str]
+    print_quality_indicators: list[str]
     print_type_reasoning: str
 
-    def __init__(self, cover_material: str, binding_type: str, print_quality_indicators: List[str], print_type_reasoning: str) -> None:
+    def __init__(self, cover_material: str, binding_type: str, print_quality_indicators: list[str], print_type_reasoning: str) -> None:
         self.cover_material = cover_material
         self.binding_type = binding_type
         self.print_quality_indicators = print_quality_indicators
@@ -48,7 +47,7 @@ class LanceConditionData(LanceModel):
     condition: str
     print_type: str
 
-    def __init__(self, physical_observations: List[PhysicalObservation], condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
+    def __init__(self, physical_observations: list[PhysicalObservation], condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
         self.physical_observations = physical_observations
         self.condition_analysis = condition_analysis
         self.print_type_analysis = print_type_analysis
