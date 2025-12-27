@@ -17,6 +17,10 @@ from baml_client.types import (
     BookConditionData,
 )
 
+# Import the LanceModel schema
+from ConditionDataSchema import LanceConditionData
+
+
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
 ) -> ProcessedBookData:
@@ -30,7 +34,7 @@ def process_image_folder(
     Returns:
         ProcessedBookData: The processed data containing book ID and images.
     """
-    book_folder = BookFolderPathData(path = Path(folder_path))
+    book_folder = BookFolderPathData(path=Path(folder_path))
     data: ProcessedBookData = processor.process_book_folder(book_folder)
     logger.info(
         "Processed book folder - Book ID: %s, Image Count: %d, Folder Path: %s",
@@ -39,6 +43,7 @@ def process_image_folder(
         folder_path,
     )
     return data
+
 
 def analyze_book_condition(
     baml_images: Any, book_id: str, output_folder: Path
@@ -68,14 +73,8 @@ def analyze_book_condition(
         )
         return BookConditionData.model_construct(Condition=None, PrintType=None)
 
-#---- begin trial code ----#
 
-# import the LanceModel schema
-from ConditionDataSchema import (
-    LanceConditionData, # main schema to be used 
-    PhysicalObservation, 
-    ConditionAnalysis, 
-    PrintTypeAnalysis)
+# ---- begin trial code ----#
 
 book_folder_path = "sample_data/rak-0018_baris-002_buku-12"
 output_folder_path = "data/output_book_data/pydantic_try"
@@ -89,6 +88,13 @@ logger.info("Connected to LanceDB at URI: %s", lance_db_uri)
 # initialize image processor
 processor = ImageProcessors()
 logger.info("Initialized ImageProcessors.")
+
+# Drop the table if it exists
+try:
+    active_db.drop_table("test_empty_table")
+    logger.info("Dropped existing table 'test_empty_table'")
+except Exception:
+    pass  # Table doesn't exist, which is fine
 
 # create the lance db table using the schema
 active_db.create_table("test_empty_table", schema=LanceConditionData)
