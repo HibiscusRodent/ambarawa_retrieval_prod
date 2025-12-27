@@ -19,7 +19,7 @@ from baml_client.types import (
 
 # Import the LanceModel schema
 from ConditionDataSchema import LanceConditionData
-from types_utils.pydantic_to_lance_db_schema import pydantic_to_arrow_schema
+from types_utils.pydantic_to_lance_schema import pydantic_to_arrow_schema
 
 
 def process_image_folder(

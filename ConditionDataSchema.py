@@ -10,7 +10,7 @@ import pyarrow as pa
 from lancedb.pydantic import LanceModel
 from pydantic import BaseModel
 
-from types_utils.pydantic_to_lance_db_schema import pydantic_to_arrow_schema
+from types_utils.pydantic_to_lance_schema import pydantic_to_arrow_schema
 
 
 class ConditionAnalysis(BaseModel):
