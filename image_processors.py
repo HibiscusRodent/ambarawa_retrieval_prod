@@ -11,10 +11,9 @@ import io
 
 # misc libraries
 from typing import Literal, cast, TypedDict
-
 from baml_py import Image as BamlImage
 
-from prefect.logging import get_run_logger
+from logger import logger
 import psutil
 import os
 
@@ -136,7 +135,6 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logger = get_run_logger()
         logger.info("Getting a list of books from path: %s", str(folder_path))
 
         directory = folder_path
@@ -193,7 +191,6 @@ class ImageProcessors:
         Returns:
             "pdf", "images", or "others"
         """
-        logger = get_run_logger()
         logger.info("Determining book data type from %d files", len(file_names))
         extensions = {Path(f).suffix.lower() for f in file_names}
 
@@ -258,7 +255,6 @@ class ImageProcessors:
                     img.thumbnail(self.max_size, resampling_method)
                     return self._encode_to_outputs(img, self.quality, self.webp_method)
         except Exception as e:
-            logger = get_run_logger()
             logger.error(
                 "Error processing source %s: %s (Exception type: %s)",
                 str(source),
@@ -286,7 +282,6 @@ class ImageProcessors:
               base64 images. These are suitable for passing directly into BAML functions
               that accept images.
         """
-        logger = get_run_logger()
         start_mem = self._get_memory_usage_mb()
         book_id = folder_path.name
         logger.info(
