@@ -42,14 +42,13 @@ class PrintTypeAnalysis(BaseModel):
 
 
 class LanceConditionData(LanceModel):
-    physical_observations: list[PhysicalObservation]
+    physical_observations_simple: list[str]
     condition_analysis: ConditionAnalysis
     print_type_analysis: PrintTypeAnalysis
     condition: str
     print_type: str
 
-    def __init__(self, physical_observations: list[PhysicalObservation], condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
-        self.physical_observations = physical_observations
+    def __init__(self, condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
         self.condition_analysis = condition_analysis
         self.print_type_analysis = print_type_analysis
         self.condition = condition
