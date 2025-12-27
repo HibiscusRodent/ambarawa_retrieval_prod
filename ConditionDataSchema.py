@@ -1,7 +1,8 @@
 from lancedb.pydantic import LanceModel, Vector
+from pydantic import BaseModel
 
 
-class ConditionAnalysis:
+class ConditionAnalysis(BaseModel):
     overall_assessment: str
     condition_reasoning: str
     preservation_urgency: str
@@ -12,7 +13,7 @@ class ConditionAnalysis:
         self.preservation_urgency = preservation_urgency
 
 
-class PhysicalObservation:
+class PhysicalObservation(BaseModel):
     image_number: int
     book_component: str
     observed_features: list[str]
@@ -27,7 +28,7 @@ class PhysicalObservation:
         self.readability_impact = readability_impact
 
 
-class PrintTypeAnalysis:
+class PrintTypeAnalysis(BaseModel):
     cover_material: str
     binding_type: str
     print_quality_indicators: list[str]
