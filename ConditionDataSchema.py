@@ -1,4 +1,4 @@
-from lancedb.pydantic import LanceModel, Vector
+from lancedb.pydantic import LanceModel
 from pydantic import BaseModel
 
 
@@ -13,19 +13,26 @@ class ConditionAnalysis(BaseModel):
         self.preservation_urgency = preservation_urgency
 
 
-class PhysicalObservation(BaseModel):
+class PhysicalObservationUnit:
     image_number: int
     book_component: str
     observed_features: list[str]
     severity_level: str
     readability_impact: str
-
+    
     def __init__(self, image_number: int, book_component: str, observed_features: list[str], severity_level: str, readability_impact: str) -> None:
         self.image_number = image_number
         self.book_component = book_component
         self.observed_features = observed_features
         self.severity_level = severity_level
         self.readability_impact = readability_impact
+        
+
+class PhysicalObservation(BaseModel):
+    observations: list[PhysicalObservationUnit]
+    
+    def __init__(self, observations: list[PhysicalObservationUnit]) -> None:
+        self.observations = observations
 
 
 class PrintTypeAnalysis(BaseModel):
@@ -42,13 +49,14 @@ class PrintTypeAnalysis(BaseModel):
 
 
 class LanceConditionData(LanceModel):
-    physical_observations_simple: list[str]
+    physical_observations: PhysicalObservation
     condition_analysis: ConditionAnalysis
     print_type_analysis: PrintTypeAnalysis
     condition: str
     print_type: str
 
-    def __init__(self, condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
+    def __init__(self, physical_observations: PhysicalObservation, condition_analysis: ConditionAnalysis, print_type_analysis: PrintTypeAnalysis, condition: str, print_type: str) -> None:
+        self.physical_observations = physical_observations
         self.condition_analysis = condition_analysis
         self.print_type_analysis = print_type_analysis
         self.condition = condition
