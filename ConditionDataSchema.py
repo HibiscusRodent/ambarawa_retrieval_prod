@@ -41,7 +41,7 @@ class PrintTypeAnalysis:
         self.print_type_reasoning = print_type_reasoning
 
 
-class JSONSchema:
+class LanceConditionData(LanceModel):
     physical_observations: list[PhysicalObservation]
     condition_analysis: ConditionAnalysis
     print_type_analysis: PrintTypeAnalysis
