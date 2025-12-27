@@ -1,4 +1,4 @@
-from image_processors import ProcessedBookData
+
 from pathlib import Path
 from typing import Any
 import pprint
@@ -10,7 +10,7 @@ from loguru import logger
 # create table is turned off in real production
 from lancedb import connect
 
-from image_processors import ImageProcessors, BookFolderPathData
+from image_processors import ImageProcessors
 
 from baml_client.sync_client import b
 from baml_client.types import (
@@ -24,7 +24,7 @@ from types_utils.pydantic_to_lance_schema import pydantic_to_arrow_schema
 
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
-) -> ProcessedBookData:
+):
     """
     Process the images in the specified book folder.
 
@@ -35,8 +35,8 @@ def process_image_folder(
     Returns:
         ProcessedBookData: The processed data containing book ID and images.
     """
-    book_folder = BookFolderPathData(path=Path(folder_path))
-    data: ProcessedBookData = processor.process_book_folder(book_folder)
+    book_folder = Path(folder_path)
+    data = processor.process_book_folder(book_folder)
     logger.info(
         "Processed book folder - Book ID: %s, Image Count: %d, Folder Path: %s",
         data.book_id,

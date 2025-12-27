@@ -1,12 +1,11 @@
 import baml_client.types as baml_types
 from baml_client.sync_client import b
-import image_processors
 import types_utils.pydantic_to_lance_schema as pyd_to_lance
 
 import lancedb
 from pathlib import Path
 
-from image_processors import ImageProcessors, BookFolderPathData, ProcessedBookData
+from image_processors import ImageProcessors
 from typing import Any
 from logger import logger
 import pprint
@@ -65,16 +64,21 @@ def analyze_book_condition(
 
 # generate data to be inserted
 ## first activate the image processor
-img_process = ImageProcessors()
+img_proc = ImageProcessors()
 logger.info("Initialized ImageProcessors.")
 
 # process the book folder to get images data and book id
-processed_data: ProcessedBookData = img_process.process_book_folder(book_folder_path)
- 
- 
+processed_data = img_proc.process_book_folder(book_folder_path)
+baml_images = processed_data["baml_images"] # TODO remember, this is how to get the images from a typed dict
+book_id = processed_data["book_id"]
+
+# get baml inference data
+logger.info ("Analyzing book condition for Book ID: %s", book_id)
+inference_data = analyze_book_condition(baml_images, book_id, output_folder_path)
 
 # open the lance db table, the same table from the creation step
 active_table = active_db.open_table(table_name)
 logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
 
-active_table = active_table.add()
+active_table = active_table.add(inference_data)
+logger.info(f"Inserted inference data for Book ID: {book_id} into LanceDB table '{table_name}'.")
