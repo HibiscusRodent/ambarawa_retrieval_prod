@@ -77,15 +77,13 @@ book_id = processed_data["book_id"]
 # get baml inference data
 logger.info ("Analyzing book condition for Book ID: %s", book_id)
 inference_data = analyze_book_condition(baml_images, book_id, output_folder_path)
-
-# get an iterator for the infered data list
-inference_data_iter = iter(inference_data)
-inference_ready_data = next(inference_data_iter)
+logger.info("Retrieved inference data for Book ID: %s", book_id)
 
 # open the lance db table, the same table from the creation step
 active_table = active_db.open_table(table_name)
 logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
 
 # insert the inference data into the lance db table
-active_table = active_table.add(inference_data)
+# LanceDB expects data as a list, dict, or DataFrame, not a single Pydantic object
+active_table = active_table.add([inference_data])
 logger.info(f"Inserted inference data for Book ID: {book_id} into LanceDB table '{table_name}'.")
