@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "autotyping>=24.9.0",
     "baml-py>=0.215.2",
     "dotenv>=0.9.9",
     "joblib>=1.5.3",

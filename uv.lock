@@ -34,6 +34,7 @@ name = "ambarawa-retrieval-prod"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "autotyping" },
     { name = "baml-py" },
     { name = "dotenv" },
     { name = "joblib" },
@@ -56,6 +57,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "autotyping", specifier = ">=24.9.0" },
     { name = "baml-py", specifier = ">=0.215.2" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "joblib", specifier = ">=1.5.3" },
@@ -175,6 +177,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload_time = "2025-10-06T13:54:44.725Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload_time = "2025-10-06T13:54:43.17Z" },
+]
+
+[[package]]
+name = "autotyping"
+version = "24.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "libcst" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/d6/da57f5c54009f3a2436e25aab1f156a241e61d96be6456050be11d5350a8/autotyping-24.9.0.tar.gz", hash = "sha256:d7e9787aca0f69b089431581f703c53210d2cf39e792e2106759d04034c1251b", size = 17116, upload_time = "2024-09-23T12:33:51.417Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ba/f2/7d40e2913c27634ebf4a3e8a77061a3ed1432ccd0b8590787985e4da8e46/autotyping-24.9.0-py3-none-any.whl", hash = "sha256:9c16b0bcab310a2dfe5228bb01c4d1dd5499e7bf67fc6b7915c35267c665b498", size = 12920, upload_time = "2024-09-23T12:33:49.957Z" },
 ]
 
 [[package]]
