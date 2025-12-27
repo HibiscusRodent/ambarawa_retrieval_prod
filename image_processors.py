@@ -7,10 +7,7 @@ import base64
 import PIL.Image
 import pymupdf as fitz
 import io
-
-
-# misc libraries
-from typing import Literal, cast, TypedDict
+from typing import Literal, Self, TypedDict, cast
 from baml_py import Image as BamlImage
 
 from logger import logger
@@ -53,7 +50,7 @@ class ImageProcessors:
     """
 
     def __init__(
-        self,
+        self: Self,
         dpi: int = 150,
         max_size: tuple[int, int] = (800, 800),
         resizing_filter: Literal[
@@ -117,11 +114,11 @@ class ImageProcessors:
         return process.memory_info().rss / (1024 * 1024)
 
     @property
-    def supported_extensions(self) -> set[str]:
+    def supported_extensions(self: Self) -> set[str]:
         """Get all supported file extensions."""
         return set(self.images_extensions + self.pdf_extensions)
 
-    def get_book_files(self, folder_path: Path) -> tuple[list[str], list[Path]]:
+    def get_book_files(self: Self, folder_path: Path) -> tuple[list[str], list[Path]]:
         """
         Get all supported files within a given directory.
 
@@ -181,7 +178,7 @@ class ImageProcessors:
         return folder_path.name
 
     def determine_book_data_type(
-        self, file_names: list[str]
+        self: Self, file_names: list[str]
     ) -> Literal["pdf", "images", "others"]:
         """
         Determine the type of book data based on file extensions.
@@ -263,7 +260,7 @@ class ImageProcessors:
             )
             raise
 
-    def process_book_folder(self, folder_path: Path) -> ProcessedBookDict:
+    def process_book_folder(self: Self, folder_path: Path) -> ProcessedBookDict:
         """
         End-to-end processing of images from a book folder using a unified pipeline.
 
