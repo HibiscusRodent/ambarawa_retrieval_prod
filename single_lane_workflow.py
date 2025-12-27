@@ -1,5 +1,6 @@
 import baml_client.types as baml_types
 from baml_client.sync_client import b
+import image_processors
 import types_utils.pydantic_to_lance_schema as pyd_to_lance
 
 import lancedb
@@ -9,6 +10,7 @@ from image_processors import ImageProcessors, BookFolderPathData, ProcessedBookD
 from typing import Any
 from logger import logger
 import pprint
+
 
 
 
@@ -26,32 +28,10 @@ bookConditionDataLance = pyd_to_lance.pydantic_to_arrow_schema(baml_types.BookCo
 
 # create an empty table using the schema
 # TODO please change the overwrite mode later, this is just for testing
-active_db.create_table(table_name, schema=bookConditionDataLance, mode="overwrite")
+active_table = active_db.create_table(table_name, schema=bookConditionDataLance, mode="overwrite")
 logger.info(f"Created LanceDB table '{table_name}' at '{lance_db_uri.as_posix()}' with BookConditionData schema.")
 
 # NOW to add real data to the table
-def process_image_folder(
-    processor: ImageProcessors, folder_path: str
-) -> ProcessedBookData:
-    """
-    Process the images in the specified book folder.
-
-    Args:
-        processor: The ImageProcessors instance.
-        folder_path: The path to the book folder.
-
-    Returns:
-        ProcessedBookData: The processed data containing book ID and images.
-    """
-    book_folder = BookFolderPathData(path=Path(folder_path))
-    data: ProcessedBookData = processor.process_book_folder(book_folder)
-    logger.info(
-        "Processed book folder - Book ID: %s, Image Count: %d, Folder Path: %s",
-        data.book_id,
-        len(data.binary_images),
-        folder_path,
-    )
-    return data
 
 
 def analyze_book_condition(
@@ -70,9 +50,9 @@ def analyze_book_condition(
     """
     try:
         logger.info("Starting book condition analysis for Book ID: %s", book_id)
-        data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
-        pprint.pprint(data.model_dump())
-        return data
+        BookConditionInferedData = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
+        pprint.pprint(BookConditionInferedData.model_dump())
+        return BookConditionInferedData
     except Exception as e:
         logger.exception(
             "Failed to analyze book condition - Book ID: %s, Error: %s (Exception type: %s)",
@@ -81,3 +61,20 @@ def analyze_book_condition(
             type(e).__name__,
         )
         return baml_types.BookConditionData.model_construct(Condition=None, PrintType=None)
+    
+
+# generate data to be inserted
+## first activate the image processor
+img_process = ImageProcessors()
+logger.info("Initialized ImageProcessors.")
+
+# process the book folder to get images data and book id
+processed_data: ProcessedBookData = img_process.process_book_folder(book_folder_path)
+ 
+ 
+
+# open the lance db table, the same table from the creation step
+active_table = active_db.open_table(table_name)
+logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
+
+active_table = active_table.add()
