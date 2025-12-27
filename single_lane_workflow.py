@@ -85,5 +85,5 @@ logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
 
 # insert the inference data into the lance db table
 # LanceDB expects data as a list, dict, or DataFrame, not a single Pydantic object
-active_table = active_table.add([inference_data.model_dump()])
+active_table = active_table.add([inference_data.model_dump()]) # TODO Copy this data passing format for later inference
 logger.info(f"Inserted inference data for Book ID: {book_id} into LanceDB table '{table_name}'.")
