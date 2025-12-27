@@ -78,6 +78,10 @@ book_id = processed_data["book_id"]
 logger.info ("Analyzing book condition for Book ID: %s", book_id)
 inference_data = analyze_book_condition(baml_images, book_id, output_folder_path)
 
+# get an iterator for the infered data list
+inference_data_iter = iter(inference_data)
+inference_ready_data = next(inference_data_iter)
+
 # open the lance db table, the same table from the creation step
 active_table = active_db.open_table(table_name)
 logger.info(f"Opened LanceDB table '{table_name}' for data insertion.")
