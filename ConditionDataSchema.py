@@ -10,6 +10,8 @@ import pyarrow as pa
 from lancedb.pydantic import LanceModel
 from pydantic import BaseModel
 
+from pydantic_to_lance_db_schema import pydantic_to_arrow_schema
+
 
 class ConditionAnalysis(BaseModel):
     """Analysis of the book's overall condition and preservation needs."""
@@ -68,68 +70,10 @@ class LanceConditionData(LanceModel):
         """
         Convert the Pydantic model to an Arrow schema.
 
-        This is a workaround for a bug in LanceDB 0.26.0 where nested Pydantic models
-        within lists are not properly converted to Arrow types.
+        Uses the universal pydantic_to_arrow_schema function that properly handles
+        nested Pydantic models within lists (workaround for LanceDB 0.26.0 bug).
 
         Returns:
             pa.Schema: The PyArrow schema for this model.
         """
-        # Define the nested struct for PhysicalObservationUnit
-        physical_observation_unit_struct = pa.struct(
-            [
-                pa.field("image_number", pa.int64(), nullable=False),
-                pa.field("book_component", pa.utf8(), nullable=False),
-                pa.field("observed_features", pa.list_(pa.utf8()), nullable=False),
-                pa.field("severity_level", pa.utf8(), nullable=False),
-                pa.field("readability_impact", pa.utf8(), nullable=False),
-            ]
-        )
-
-        # Define the nested struct for PhysicalObservation
-        physical_observation_struct = pa.struct(
-            [
-                pa.field(
-                    "observations",
-                    pa.list_(physical_observation_unit_struct),
-                    nullable=False,
-                ),
-            ]
-        )
-
-        # Define the nested struct for ConditionAnalysis
-        condition_analysis_struct = pa.struct(
-            [
-                pa.field("overall_assessment", pa.utf8(), nullable=False),
-                pa.field("condition_reasoning", pa.utf8(), nullable=False),
-                pa.field("preservation_urgency", pa.utf8(), nullable=False),
-            ]
-        )
-
-        # Define the nested struct for PrintTypeAnalysis
-        print_type_analysis_struct = pa.struct(
-            [
-                pa.field("cover_material", pa.utf8(), nullable=False),
-                pa.field("binding_type", pa.utf8(), nullable=False),
-                pa.field(
-                    "print_quality_indicators", pa.list_(pa.utf8()), nullable=False
-                ),
-                pa.field("print_type_reasoning", pa.utf8(), nullable=False),
-            ]
-        )
-
-        # Combine into the main schema
-        return pa.schema(
-            [
-                pa.field(
-                    "physical_observations", physical_observation_struct, nullable=False
-                ),
-                pa.field(
-                    "condition_analysis", condition_analysis_struct, nullable=False
-                ),
-                pa.field(
-                    "print_type_analysis", print_type_analysis_struct, nullable=False
-                ),
-                pa.field("condition", pa.utf8(), nullable=False),
-                pa.field("print_type", pa.utf8(), nullable=False),
-            ]
-        )
+        return pydantic_to_arrow_schema(cls)

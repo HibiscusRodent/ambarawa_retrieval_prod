@@ -18,7 +18,8 @@ from baml_client.types import (
 )
 
 # Import the LanceModel schema
-from ConditionDataSchema import LanceConditionData
+# from ConditionDataSchema import LanceConditionData
+from bamlToLanceSchema import LanceBookConditionData
 
 
 def process_image_folder(
@@ -96,6 +97,6 @@ try:
 except Exception:
     pass  # Table doesn't exist, which is fine
 
-# create the lance db table using the schema
-active_db.create_table("test_empty_table", schema=LanceConditionData)
-logger.info("Created LanceDB table with LanceConditionData schema.")
+# create an empty lance db table using the schema
+active_db.create_table("test_empty_table", schema = LanceBookConditionData)
+logger.info("Created LanceDB table with LanceBookConditionData schema.")
