@@ -10,6 +10,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "joblib>=1.5.3",
     "lancedb>=0.26.0",
+    "libcst>=1.8.6",
     "logfire>=4.16.0",
     "logger>=1.4",
     "monkeytype>=23.3.0",
