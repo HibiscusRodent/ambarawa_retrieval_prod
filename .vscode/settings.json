@@ -1,7 +1,8 @@
 {
-    "terminal.integrated.shellIntegration.enabled": false,
-    "terminal.integrated.shellIntegration.decorationsEnabled": "never",
-    "terminal.integrated.shellIntegration.quickFixEnabled": false,
-    "terminal.integrated.stickyScroll.enabled": false,
-    "terminal.integrated.suggest.enabled": false
+    "terminal.integrated.shellIntegration.enabled": true,
+    "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+    "terminal.integrated.shellIntegration.quickFixEnabled": true,
+    "terminal.integrated.stickyScroll.enabled": true,
+    "terminal.integrated.suggest.enabled": true,
+    "terminal.integrated.shellIntegration.environmentReporting": true
 }
