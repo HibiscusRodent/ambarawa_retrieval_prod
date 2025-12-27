@@ -29,8 +29,10 @@ bookConditionDataLance = pyd_to_lance.pydantic_to_arrow_schema(baml_types.BookCo
 
 # create an empty table using the schema
 # TODO please change the overwrite mode later, this is just for testing
-active_table = active_db.create_table(table_name, schema=bookConditionDataLance, mode="overwrite")
-logger.info(f"Created LanceDB table '{table_name}' at '{lance_db_uri.as_posix()}' with BookConditionData schema.")
+
+# deactivated table creation for now, assuming the table is already created
+# active_table = active_db.create_table(table_name, schema=bookConditionDataLance, mode="overwrite")
+# logger.info(f"Created LanceDB table '{table_name}' at '{lance_db_uri.as_posix()}' with BookConditionData schema.")
 
 # NOW to add real data to the table
 
