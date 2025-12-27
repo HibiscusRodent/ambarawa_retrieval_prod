@@ -1,0 +1,5 @@
+# Ambarawa Retrieval System
+
+This is a retrieval system build to perform automatic cataloging tasks for the books stored in the Ambarawa Library. The field team has obtained photos of each books existing in the library. The total amount of the book is at around 10 thousand books. Each field workers has obtained a set of photos, including but not limited to a photo of the front cover, a photo of the back cover, and a photo of the colophon page. An LLM model with vision capabilities is then used to extract the metadata from the photos. The metadata is then used to catalog the books. The cataloging process is then used to create a database of the books, which is then used to perform search tasks. The search tasks are then used to retrieve the books based on the user's query. The data are then stored into a dataframe, which is then used to perform search tasks. The search tasks are then used to retrieve the books based on the user's query.
+
+The dataframe that is going to be used is the `lancedb` dataframe system, as it is able to handle large amount of data and perform search tasks efficiently. For LLM orchestration and other toolings, BAML is used.

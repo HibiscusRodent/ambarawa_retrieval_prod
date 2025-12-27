@@ -4,31 +4,92 @@ from pathlib import Path
 # libraries for handling format conversions
 # and also image processings, including PDFs
 import base64
-import numpy as np
 import PIL.Image
 import pymupdf as fitz
 import io
 
+
 # misc libraries
-from loguru import logger
-from typing import Literal
+from typing import Literal, cast
+from pydantic import BaseModel, ConfigDict, Field
+
+from baml_py import Image as BamlImage
+
+from prefect.logging import get_run_logger
+import psutil
+import os
 
 # for parallelizations
 from joblib import Parallel, delayed
 
-# rich traceback to show better debugging display
-from rich.traceback import install
 
-install()
+class BookFolderPathData(BaseModel):
+    """
+    Pydantic model representing the input data required for book folder processing.
+
+    This class encapsulates the filesystem path to a book folder and provides
+    utility properties to extract book metadata, such as the book ID.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    path: Path = Field(
+        ...,
+        description="The absolute or relative Path object pointing to the book folder.",
+    )
+
+    @property
+    def book_id(self) -> str:
+        """
+        Extracts and returns the book ID based on the folder name.
+
+        Returns:
+            str: The name of the directory which serves as the unique identifier for the book.
+        """
+        return self.path.name
+
+
+class ProcessedBookData(BaseModel):
+    """
+    Pydantic model representing the output data after processing a book folder.
+
+    This class holds the results of image processing, including various data formats
+    (base64 and binary) suitable for different downstream tasks like vector database
+    insertion or LLM inference.
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    book_id: str = Field(
+        ..., description="The unique identifier of the book, typically the folder name."
+    )
+    base64_images: list[str] = Field(
+        ...,
+        description="A list of base64-encoded strings representing the processed images. "
+        "These are optimized for storage in columnar formats like LanceDB.",
+    )
+    binary_images: list[bytes] = Field(
+        ...,
+        description="A list of raw binary bytes representing the processed images. "
+        "These are optimized for direct usage with AI model APIs.",
+    )
+
+    baml_images: list[BamlImage] = Field(
+        default_factory=list,
+        description="A list of BAML Image objects created from the base64 images. "
+        "These are suitable for passing directly into BAML functions that accept images.",
+    )
 
 
 class ImageProcessors:
     """
     A class for processing images and PDFs, including loading, resizing,
-    and converting to various formats (numpy arrays, base64, binary).
+    and converting to various formats (numpy arrays, base64, binary). Some of the key functions within the class:
+    1. end-to-end processing of images from a book folder: taking in a path to a book folder and returning their id, base64 images, and binary images
+    2. loading images and PDFs
+    3. resizing images
+    4. converting images to base64 and binary data
 
-    All configuration is managed through instance attributes, eliminating
-    the need for a separate configuration schema.
     """
 
     def __init__(
@@ -89,17 +150,25 @@ class ImageProcessors:
         self.images_extensions = [ext.lower() for ext in self.images_extensions]
         self.pdf_extensions = [ext.lower() for ext in self.pdf_extensions]
 
+    @staticmethod
+    def _get_memory_usage_mb() -> float:
+        """Get current memory usage in megabytes (RSS)."""
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / (1024 * 1024)
+
     @property
     def supported_extensions(self) -> set[str]:
         """Get all supported file extensions."""
         return set(self.images_extensions + self.pdf_extensions)
 
-    def get_book_files(self, book_folder: str | Path) -> tuple[list[str], list[Path]]:
+    def get_book_files(
+        self, folder_data: BookFolderPathData
+    ) -> tuple[list[str], list[Path]]:
         """
         Get all supported files within a given directory.
 
         Args:
-            book_folder: Path to the book directory
+            folder_data: Data object containing the path to the book directory
 
         Returns:
             A tuple containing a list of file names and paths.
@@ -108,9 +177,10 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logger.info(f"Getting a list of books from {book_folder}")
+        logger = get_run_logger()
+        logger.info("Getting a list of books from path: %s", str(folder_data.path))
 
-        directory = Path(book_folder)
+        directory = folder_data.path
         try:
             directory = directory.resolve(strict=True)
         except FileNotFoundError:
@@ -134,21 +204,24 @@ class ImageProcessors:
 
         matched_paths.sort()
         file_names = [p.name for p in matched_paths]
-        logger.info(f"Found {len(matched_paths)} supported files in {directory}")
+        logger.info(
+            "Found %d supported files in directory: %s",
+            len(matched_paths),
+            str(directory),
+        )
         return file_names, matched_paths
 
-    @staticmethod
-    def get_book_id(book_folder: str | Path) -> str:
+    def get_book_id(self, folder_data: BookFolderPathData) -> str:
         """
-        Get the book ID from a given book folder path.
+        Get the book ID from a given book folder path data.
 
         Args:
-            book_folder: Path to the book directory
+            folder_data: Data object containing the path to the book directory
 
         Returns:
             A string representing the book ID (folder name).
         """
-        return Path(book_folder).name
+        return folder_data.book_id
 
     def determine_book_data_type(
         self, file_names: list[str]
@@ -158,237 +231,199 @@ class ImageProcessors:
 
         Args:
             file_names: List of file names to check
-
         Returns:
             "pdf", "images", or "others"
         """
-        logger.info("Determining book data type...")
+        logger = get_run_logger()
+        logger.info("Determining book data type from %d files", len(file_names))
         extensions = {Path(f).suffix.lower() for f in file_names}
 
         if any(ext in self.pdf_extensions for ext in extensions):
-            logger.info("Detected PDF files")
+            logger.info("Detected PDF files with extensions: %s", extensions)
             return "pdf"
         elif any(ext in self.images_extensions for ext in extensions):
-            logger.info("Detected image files")
+            logger.info("Detected image files with extensions: %s", extensions)
             return "images"
         else:
-            logger.warning("Detected unsupported file types")
+            logger.warning("Detected unsupported file types with extensions: %s", extensions)
             return "others"
 
     @staticmethod
-    def _load_single_image(image_path: Path) -> np.ndarray:
-        """Load a single image into a numpy array."""
+    def _encode_to_outputs(
+        img: PIL.Image.Image, quality: int, method: int
+    ) -> tuple[str, bytes]:
+        """Encodes a PIL image to both binary bytes and base64 string once."""
+        buffer = io.BytesIO()
+        # Using WEBP for both as it's efficient and consistent
+        img.save(
+            buffer,
+            format="WEBP",
+            quality=quality,
+            method=method,
+        )
+        binary_data = buffer.getvalue()
+        base64_data = base64.b64encode(binary_data).decode("utf-8")
+        return base64_data, binary_data
+
+    def _process_single_source(
+        self, source: Path | tuple[Path, int]
+    ) -> tuple[str, bytes]:
+        """
+        Processor unit that handles load -> resize -> encode in one pass.
+        This minimizes memory overhead as pixel data is cleared after each item.
+        """
         try:
-            with PIL.Image.open(image_path) as img:
-                if img.mode != "RGB":
-                    img = img.convert("RGB")
-                return np.array(img)
+            resampling_method = getattr(
+                PIL.Image.Resampling, self.resizing_filter.upper()
+            )
+
+            if isinstance(source, Path):
+                # Process image file
+                with PIL.Image.open(source) as img:
+                    if img.mode != "RGB":
+                        img = img.convert("RGB")
+                    img.thumbnail(self.max_size, resampling_method)
+                    return self._encode_to_outputs(img, self.quality, self.webp_method)
+            else:
+                # Process PDF page (source is (path, page_num))
+                path, page_num = source
+                with fitz.open(path) as doc:
+                    page = doc.load_page(page_num)
+                    pix = page.get_pixmap(dpi=self.dpi)
+                    # Create PIL image directly from memory samples (no intermediate JPEG)
+                    img = PIL.Image.frombytes(
+                        "RGB", (pix.width, pix.height), pix.samples
+                    )
+                    img.thumbnail(self.max_size, resampling_method)
+                    return self._encode_to_outputs(img, self.quality, self.webp_method)
         except Exception as e:
-            logger.error(f"Error processing image {image_path}: {e}")
+            logger = get_run_logger()
+            logger.error(
+                "Error processing source %s: %s (Exception type: %s)",
+                str(source),
+                str(e),
+                type(e).__name__,
+            )
             raise
 
-    def load_images_to_numpyarrays(self, image_paths: list[Path]) -> list[np.ndarray]:
+    def process_book_folder(self, folder_data: BookFolderPathData) -> ProcessedBookData:
         """
-        Convert image files to numpy arrays using parallel processing.
+        End-to-end processing of images from a book folder using a unified pipeline.
 
         Args:
-            image_paths: List of image file paths
+            folder_data: Data object containing the path to the book directory
 
         Returns:
-            List of numpy arrays, each representing an image.
+            A ProcessedBookData object containing IDs and optimized image data.
         """
-        logger.debug(f"Converting {len(image_paths)} image files to NumPy arrays...")
-
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._load_single_image)(path) for path in image_paths
-        )
-        return results
-
-    def get_pdf_paths(self, file_paths: list[Path]) -> list[Path]:
-        """Get PDF file paths from the list of file paths."""
-        return [
-            path for path in file_paths if path.suffix.lower() in self.pdf_extensions
-        ]
-
-    def pdfs_to_numpy_arrays(self, pdf_paths: list[Path]) -> list[np.ndarray]:
-        """
-        Convert PDF files to numpy arrays using PyMuPDF (fitz).
-
-        Args:
-            pdf_paths: List of PDF file paths
-
-        Returns:
-            List of numpy arrays, each representing a page.
-        """
+        logger = get_run_logger()
+        start_mem = self._get_memory_usage_mb()
         logger.info(
-            f"Converting {len(pdf_paths)} PDF files to NumPy arrays via fitz..."
+            "Starting book folder processing - Book ID: %s, Path: %s, Start Memory: %.2f MB",
+            folder_data.book_id,
+            str(folder_data.path),
+            start_mem,
         )
-
-        if not pdf_paths:
-            raise ValueError("No PDF files provided")
-
-        combined_pdf = fitz.open()
-        try:
-            for pdf_path in pdf_paths:
-                logger.debug(f"Processing PDF: {pdf_path}")
-                with fitz.open(pdf_path) as source_pdf:
-                    combined_pdf.insert_pdf(source_pdf)
-
-            logger.info(f"Combined PDF has {len(combined_pdf)} pages")
-
-            results = []
-            for page_num in range(len(combined_pdf)):
-                page = combined_pdf.load_page(page_num)
-                pix = page.get_pixmap(dpi=self.dpi)
-                img_bytes = pix.tobytes(output="jpeg")
-                img = PIL.Image.open(io.BytesIO(img_bytes))
-                if img.mode != "RGB":
-                    img = img.convert("RGB")
-                results.append(np.array(img))
-                logger.debug(f"Processed page {page_num + 1}/{len(combined_pdf)}")
-
-            result = results
-
-            logger.debug(
-                f"Successfully converted PDF pages to {len(result)} numpy arrays"
-            )
-            return result
-
-        finally:
-            combined_pdf.close()
-
-    def get_image_arrays(
-        self, file_names: list[str], file_paths: list[Path]
-    ) -> list[np.ndarray]:
-        """
-        Get numpy arrays from book files based on their type.
-
-        Args:
-            file_names: List of file names
-            file_paths: List of file paths
-
-        Returns:
-            List of numpy arrays representing images or PDF pages.
-        """
+        
+        file_names, file_paths = self.get_book_files(folder_data)
         data_type = self.determine_book_data_type(file_names)
 
-        match data_type:
-            case "pdf":
-                pdf_paths = self.get_pdf_paths(file_paths)
-                return self.pdfs_to_numpy_arrays(pdf_paths)
-            case "images":
-                return self.load_images_to_numpyarrays(file_paths)
-            case _:
-                logger.error("Unsupported book data type")
-                return []
+        total_disk_size = sum(p.stat().st_size for p in file_paths)
+        after_files_mem = self._get_memory_usage_mb()
 
-    def _resize_single_image(self, image_array: np.ndarray) -> np.ndarray:
-        """Resize a single image numpy array."""
-        resampling_method = getattr(PIL.Image.Resampling, self.resizing_filter.upper())
-        pil_img = PIL.Image.fromarray(image_array)
-        pil_img.thumbnail(self.max_size, resampling_method, reducing_gap=3.0)
-        return np.array(pil_img)
-
-    def resize_image_arrays(self, image_arrays: list[np.ndarray]) -> list[np.ndarray]:
-        """
-        Resize image numpy arrays using parallel processing.
-
-        Args:
-            image_arrays: List of numpy arrays
-
-        Returns:
-            List of resized numpy arrays.
-        """
-        logger.debug(f"Resizing {len(image_arrays)} image arrays...")
-
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._resize_single_image)(img) for img in image_arrays
-        )
-        return results
-
-    def _image_array_to_base64(self, img_array: np.ndarray) -> str:
-        """Convert a single numpy array to base64 string."""
-        pil_img = PIL.Image.fromarray(img_array)
-        buffer = io.BytesIO()
-        pil_img.save(
-            buffer,
-            quality=self.quality,
-            format="WEBP",
-            method=self.webp_method,
-        )
-        return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-    def image_arrays_to_base64(self, image_arrays: list[np.ndarray]) -> list[str]:
-        """
-        Convert numpy arrays to base64 strings.
-
-        Args:
-            image_arrays: List of numpy arrays
-
-        Returns:
-            List of base64-encoded strings.
-        """
-        logger.info(f"Converting {len(image_arrays)} images to Base64 encoding...")
-
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._image_array_to_base64)(img) for img in image_arrays
+        logger.info(
+            "Files located - Count: %d, Data Type: %s, Total Disk Size: %d bytes (%.2f MB), Memory After Files: %.2f MB",
+            len(file_paths),
+            data_type,
+            total_disk_size,
+            total_disk_size / (1024 * 1024),
+            after_files_mem,
         )
 
-        logger.success(f"Successfully converted {len(results)} images to Base64")
-        return results
+        # 1. Prepare flat list of processing sources
+        sources: list[Path | tuple[Path, int]] = []
+        if data_type == "pdf":
+            for path in file_paths:
+                if path.suffix.lower() in self.pdf_extensions:
+                    with fitz.open(path) as doc:
+                        sources.extend([(path, i) for i in range(len(doc))])
+        elif data_type == "images":
+            sources = cast(list[Path | tuple[Path, int]], file_paths)
+        else:
+            logger.warning(
+                "No processable files found for book ID: %s (Data Type: %s)",
+                folder_data.book_id,
+                data_type,
+            )
+            return ProcessedBookData(
+                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            )
 
-    def _image_array_to_binary(self, img_array: np.ndarray) -> bytes:
-        """Convert a single numpy array to binary data."""
-        pil_img = PIL.Image.fromarray(img_array)
-        buffer = io.BytesIO()
-        pil_img.save(
-            buffer,
-            quality=self.binary_quality,
-            format=self.binary_format,
-            method=self.binary_webp_method,
-        )
-        return buffer.getvalue()
-
-    def image_arrays_to_binary(self, image_arrays: list[np.ndarray]) -> list[bytes]:
-        """
-        Convert numpy arrays to binary data.
-
-        Args:
-            image_arrays: List of numpy arrays
-
-        Returns:
-            List of bytes objects.
-        """
-        logger.info(f"Converting {len(image_arrays)} images to binary data...")
-
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(self._image_array_to_binary)(img) for img in image_arrays
+        after_sources_mem = self._get_memory_usage_mb()
+        logger.info(
+            "Sources prepared - Item Count: %d, Memory: %.2f MB",
+            len(sources),
+            after_sources_mem,
         )
 
-        logger.success(f"Successfully converted {len(results)} images to binary data")
-        return results
+        # 2. Parallel execution of the unified pipeline
+        results: list[tuple[str, bytes]] = cast(
+            list[tuple[str, bytes]],
+            Parallel(n_jobs=self.n_jobs)(
+                delayed(self._process_single_source)(s) for s in sources
+            ),
+        )
 
-    def process_book_folder(
-        self, book_folder: str | Path
-    ) -> tuple[list[str], list[bytes]]:
-        """
-        End-to-end processing of images from a book folder.
+        after_parallel_mem = self._get_memory_usage_mb()
+        logger.info("Parallel processing complete - Memory: %.2f MB, Results Count: %d", after_parallel_mem, len(results))
 
-        Args:
-            book_folder: Path to the book directory
+        if not results:
+            return ProcessedBookData(
+                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            )
 
-        Returns:
-            A tuple containing:
-            - base64_images: List of base64-encoded strings
-            - binary_images: List of bytes objects
-        """
-        file_names, file_paths = self.get_book_files(book_folder)
-        image_arrays = self.get_image_arrays(file_names, file_paths)
-        resized_arrays = self.resize_image_arrays(image_arrays)
+        # 3. Unzip results into separate lists
+        # zip(*results) returns two tuples, we convert them to lists
+        base64_images, binary_images = map(list, zip(*results))
 
-        base64_images = self.image_arrays_to_base64(resized_arrays)
-        binary_images = self.image_arrays_to_binary(resized_arrays)
-        return base64_images, binary_images
+        baml_images: list[BamlImage] = []
+        for idx, base64_image in enumerate(base64_images):
+            try:
+                # NOTE: our encoder uses WEBP in _encode_to_outputs
+                baml_images.append(
+                    BamlImage.from_base64("image/webp", base64_image)
+                )
+            except Exception as e:
+                logger.error(
+                    "Error creating BAML image at index %d: %s (Exception type: %s)",
+                    idx,
+                    str(e),
+                    type(e).__name__,
+                )
+                continue
+
+        total_base64_size = sum(len(s) for s in base64_images)
+        total_binary_size = sum(len(b) for b in binary_images)
+        end_mem = self._get_memory_usage_mb()
+
+        logger.info(
+            "Processing complete - Book ID: %s, Image Count: %d, Total Base64 Size: %d bytes (%.2f MB), Total Binary Size: %d bytes (%.2f MB), Final Memory: %.2f MB, Memory Delta: %.2f MB",
+            folder_data.book_id,
+            len(base64_images),
+            total_base64_size,
+            total_base64_size / (1024 * 1024),
+            total_binary_size,
+            total_binary_size / (1024 * 1024),
+            end_mem,
+            end_mem - start_mem,
+        )
+
+        return ProcessedBookData(
+            book_id=folder_data.book_id,
+            base64_images=cast(list[str], base64_images),
+            binary_images=cast(list[bytes], binary_images),
+            baml_images=baml_images,
+        )
 
 
 def main() -> None:
@@ -396,4 +431,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    ip = ImageProcessors()
+    main()

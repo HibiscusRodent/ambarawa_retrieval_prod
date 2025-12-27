@@ -1,0 +1,26 @@
+# lockfiles from uv
+
+# all files inside baml_client
+./baml_client/
+
+# environment variables so that api keys are protected
+.env
+
+# cache data and compiled files everywhere they are
+*__pycache__/
+
+# data files
+data/
+lancedb/
+lance_db_test/
+sample_data/
+
+# lance datas
+*.lance
+baml_client/
+
+# .venv data
+.venv/
+venv/
+
+uv.lock
