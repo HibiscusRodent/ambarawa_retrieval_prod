@@ -37,6 +37,7 @@ dependencies = [
     { name = "autotyping" },
     { name = "baml-py" },
     { name = "dotenv" },
+    { name = "infer-types" },
     { name = "joblib" },
     { name = "lancedb" },
     { name = "libcst" },
@@ -62,6 +63,7 @@ requires-dist = [
     { name = "autotyping", specifier = ">=24.9.0" },
     { name = "baml-py", specifier = ">=0.215.2" },
     { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "infer-types", specifier = ">=1.0.0" },
     { name = "joblib", specifier = ">=1.5.3" },
     { name = "lancedb", specifier = ">=0.26.0" },
     { name = "libcst", specifier = ">=1.8.6" },
@@ -140,6 +142,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6a/da/e7908b54e0f8043725a990bf625f2041ecf6bfe8eb7b19407f1c00b630f7/asgi-lifespan-2.1.0.tar.gz", hash = "sha256:5e2effaf0bfe39829cf2d64e7ecc47c7d86d676a6599f7afba378c31f5e3a308", size = 15627, upload_time = "2023-03-28T17:35:49.126Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2f/f5/c36551e93acba41a59939ae6a0fb77ddb3f2e8e8caa716410c65f7341f72/asgi_lifespan-2.1.0-py3-none-any.whl", hash = "sha256:ed840706680e28428c01e14afb3875d7d76d3206f3d5b2f2294e059b5c23804f", size = 10895, upload_time = "2023-03-28T17:35:47.772Z" },
+]
+
+[[package]]
+name = "astroid"
+version = "4.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/22/97df040e15d964e592d3a180598ace67e91b7c559d8298bdb3c949dc6e42/astroid-4.0.2.tar.gz", hash = "sha256:ac8fb7ca1c08eb9afec91ccc23edbd8ac73bb22cbdd7da1d488d9fb8d6579070", size = 405714, upload_time = "2025-11-09T21:21:18.373Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/ac/a85b4bfb4cf53221513e27f33cc37ad158fce02ac291d18bee6b49ab477d/astroid-4.0.2-py3-none-any.whl", hash = "sha256:d7546c00a12efc32650b19a2bb66a153883185d3179ab0d4868086f807338b9b", size = 276354, upload_time = "2025-11-09T21:21:16.54Z" },
+]
+
+[[package]]
+name = "astypes"
+version = "0.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astroid" },
+    { name = "typeshed-client" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/80/7028efe25d789b020170cc5937f6d2162a2a53604aa3914d9b03707f9390/astypes-0.2.6.tar.gz", hash = "sha256:7bfb49dc207890587cd3d1b2fe57c61aa378fb0603a3590ab5e1c1c78b24e387", size = 13595, upload_time = "2023-03-17T07:58:00.716Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/9f/087a31145a2b63ce01deb60e160eac29c700562921b43a7cfbbd0daf3bce/astypes-0.2.6-py3-none-any.whl", hash = "sha256:4274e83a80c616f400d05678f9b8bc8143a94e544bbfa02906cc5805d990bf13", size = 10312, upload_time = "2023-03-17T07:57:57.945Z" },
 ]
 
 [[package]]
@@ -758,6 +782,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cf/8c/f834fbf984f691b4f7ff60f50b514cc3de5cc08abfc3295564dd89c5e2e7/importlib_resources-6.5.2.tar.gz", hash = "sha256:185f87adef5bcc288449d98fb4fba07cea78bc036455dd44c5fc4a2fe78fed2c", size = 44693, upload_time = "2025-01-03T18:51:56.698Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/ed/1f1afb2e9e7f38a545d628f864d562a5ae64fe6f7a10e28ffb9b185b4e89/importlib_resources-6.5.2-py3-none-any.whl", hash = "sha256:789cfdc3ed28c78b67a06acb8126751ced69a3d5f79c095a98298cd8a760ccec", size = 37461, upload_time = "2025-01-03T18:51:54.306Z" },
+]
+
+[[package]]
+name = "infer-types"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astroid" },
+    { name = "astypes" },
+    { name = "typeshed-client" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/00/bce897ae055f60e805485ccf64a0b74767ed397195a48e9e220c63bfa41f/infer_types-1.0.0.tar.gz", hash = "sha256:a7d09a87431bccf73c30983b7918803bf4fe066df053aecf35ab293aad9a0c2b", size = 14569, upload_time = "2023-03-17T10:51:25.94Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/29/9b412805f930bae4dd60babef9be5677a033e00f3c0b3b40e64e6f3224cb/infer_types-1.0.0-py3-none-any.whl", hash = "sha256:98ac8ff060061d56736e13238945b835c5c90eef7fc17f42adf9dded26b94f29", size = 11154, upload_time = "2023-03-17T10:51:23.705Z" },
 ]
 
 [[package]]

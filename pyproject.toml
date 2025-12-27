@@ -8,6 +8,7 @@ dependencies = [
     "autotyping>=24.9.0",
     "baml-py>=0.215.2",
     "dotenv>=0.9.9",
+    "infer-types>=1.0.0",
     "joblib>=1.5.3",
     "lancedb>=0.26.0",
     "libcst>=1.8.6",
