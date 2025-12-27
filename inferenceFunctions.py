@@ -1,3 +1,4 @@
+from lancedb.db import DBConnection
 from baml_py.baml_py import BamlImagePy
 from image_processors import ProcessedBookData
 from pathlib import Path
@@ -68,7 +69,7 @@ def _save_to_json(data: BaseModel, output_path: Path) -> None:
 
 
 @task
-def initialize_database(uri: str):
+def initialize_database(uri: str) -> DBConnection:
     """
     Initialize the LanceDB connection.
 
@@ -464,7 +465,7 @@ def prepare_data_for_ingestion(
 
 @task(cache_policy=NO_CACHE)
 def ingest_to_lancedb(
-    db,
+    db: DBConnection,
     table_name: str,
     data: List[Dict[str, Any]],
 ) -> Any:

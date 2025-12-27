@@ -1,4 +1,5 @@
 
+from image_processors import ProcessedBookDict
 from pathlib import Path
 from typing import Any
 import pprint
@@ -24,7 +25,7 @@ from types_utils.pydantic_to_lance_schema import pydantic_to_arrow_schema
 
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
-):
+) -> ProcessedBookDict:
     """
     Process the images in the specified book folder.
 
