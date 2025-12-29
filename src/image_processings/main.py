@@ -19,7 +19,7 @@ import os
 from joblib import Parallel, delayed
 
 
-class ProcessedBookDict(BaseModel):
+class ProcessedBookImageData(BaseModel):
     """
     Pydantic model representing the return type for processed book data.
 
@@ -263,7 +263,7 @@ class ImageProcessors:
             )
             raise
 
-    def process_book_folder(self: Self, folder_path: Path) -> ProcessedBookDict:
+    def process_book_folder(self: Self, folder_path: Path) -> ProcessedBookImageData:
         """
         End-to-end processing of images from a book folder using a unified pipeline.
 
@@ -321,7 +321,7 @@ class ImageProcessors:
                 book_id,
                 data_type,
             )
-            return ProcessedBookDict(
+            return ProcessedBookImageData(
                 book_id=book_id,
                 base64_images=[],
                 binary_images=[],
@@ -351,7 +351,7 @@ class ImageProcessors:
         )
 
         if not results:
-            return ProcessedBookDict(
+            return ProcessedBookImageData(
                 book_id=book_id,
                 base64_images=[],
                 binary_images=[],
@@ -401,7 +401,7 @@ class ImageProcessors:
                 len(baml_images),
             )
 
-        return ProcessedBookDict(
+        return ProcessedBookImageData(
             book_id=book_id,
             base64_images=cast(list[str], base64_images),
             binary_images=cast(list[bytes], binary_images),

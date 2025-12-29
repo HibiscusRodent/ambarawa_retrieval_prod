@@ -12,6 +12,6 @@ Main Classes:
     ProcessedBookDict: TypedDict for structured book processing results
 """
 
-from image_processings.main import ImageProcessors, ProcessedBookDict
+from image_processings.main import ImageProcessors, ProcessedBookImageData
 
-__all__: list[str] = ["ImageProcessors", "ProcessedBookDict"]
+__all__: list[str] = ["ImageProcessors", "ProcessedBookImageData"]

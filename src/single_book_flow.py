@@ -1,8 +1,9 @@
 # ---- importing modules ----
 
+import shutil
 from venv import logger
 from zipfile import Path
-from image_processings import ImageProcessors, ProcessedBookDict
+from image_processings import ImageProcessors, ProcessedBookImageData
 from baml_client.sync_client import b
 from baml_client.types import (
     BookConditionData,
@@ -35,12 +36,8 @@ def initiate_environment():
     logger.info("Environment configured and variables loaded.")
     return None
 
-# utility functions
-
-def setup_output_directory(output_path):
-    output_path.mkdir(parents=True, exist_ok=True)
-    pass
-
+# utilities functions to save data to disk
+@task
 def save_to_json(data, output_path):
     """
     Saving a Pydantic model to a JSON file on the disk, with proper formatting.
@@ -55,18 +52,69 @@ def save_to_json(data, output_path):
     with output_path.open("w", encoding="utf-8") as f:
         f.write(data.model_dump_json(indent=4, ensure_ascii=False))
         
-        
+def save_binary_images_to_disk(image_data: ProcessedBookImageData, output_folder: Path) -> None:
+    """
+    Save binary images to the specified output folder on disk.
+
+    Args:
+        binary_images: List of binary image data to be saved.
+        output_folder: Path object representing the folder where images
+                       will be saved.
+    """
+    book_id: str = image_data.book_id
+    book_output_folder: Path = output_folder / book_id
+    
+    # Efficiently clear existing images or create folder
+    if book_output_folder.exists():
+        logger.info("Clearing existing output folder: %s", str(book_output_folder))
+        shutil.rmtree(book_output_folder)
+    book_output_folder.mkdir(parents=True, exist_ok=True)
+
+    # Write binary images
+    for idx, img_data in enumerate(image_data.binary_images):
+        img_file_path: Path = book_output_folder / f"{book_id}_img_{idx + 1:03d}.jpg"
+        img_file_path.write_bytes(img_data)
+
+    logger.info(
+        "Saved images locally - Book ID: %s, Path: %s, Image Count: %d",
+        book_id,
+        str(book_output_folder),
+        len(image_data.binary_images),
+    )
+    return None
+
 # inference related tasks
+@task
 def process_image_folder(image_processor: ImageProcessors, folder_path: str):
-    data: ProcessedBookDict = image_processor.process_book_folder(Path(folder_path))
-    logger.info(f"Processed book with id of: {data.book_id}")
-    logger.info(f"Got a total of {len(data.binary_images)} images")
-    return data
+    """
+    Process a book folder containing images using the provided ImageProcessors instance.
+    Return images data as a ProcessedBookImageData, which includes base64, binary, and BAML images.
+        
+    Args:
+        image_processor: An instance of ImageProcessors to handle the processing.
+        folder_path: Path to the folder containing book images.
+        
+    Returns:
+        ProcessedBookDict: A dictionary containing processed images and book ID.
+        The dictionary has the following structure:
+            {
+                "book_id": str,
+                "base64_images": list[str],
+                "binary_images": list[bytes], wil be saved as binary images into the disk
+                "baml_images": list[b.BamlImage], will be used in the BAML inference
+            }
+    """
+    
+    image_data: ProcessedBookImageData = image_processor.process_book_folder(Path(folder_path))
+    logger.info(f"Processed book with id of: {image_data.book_id}")
+    logger.info(f"Got a total of {len(image_data.binary_images)} images")
+    return image_data
         
 # the flow that encapsulates all process within the book processing data
 @flow
-def single_book_flow():
-    # intiate environment
-    initiate_environment()
+def single_book_flow(book_folder_path: str) -> None:
+    initiate_environment() # intiate environment
+    book_folder = Path(book_folder_path) # taking in a book folder path and validating it
+
     
     return None
