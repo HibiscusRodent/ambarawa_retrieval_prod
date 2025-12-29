@@ -16,8 +16,8 @@ from pathlib import Path
 
 @task
 def initiate_environment():
-    """Initialize the environment for book processing.
-    
+    """
+    Initialize the environment for book processing.
     Loads environment variables, sets up rich traceback, initializes logger
     and ImageProcessors to ensure all dependencies are loaded.
     
