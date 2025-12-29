@@ -44,6 +44,7 @@ BAML Compatibility:
 from __future__ import annotations
 
 import inspect
+from os import name
 import sys
 import types
 from datetime import date, datetime
@@ -505,3 +506,8 @@ PYTHON_TO_ARROW_TYPE_MAP: Dict[type, pa.DataType] = {
     date: pa.date32(),
     datetime: pa.timestamp("us"),
 }
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
