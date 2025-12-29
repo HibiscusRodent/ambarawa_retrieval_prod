@@ -112,9 +112,20 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
         
 # the flow that encapsulates all process within the book processing data
 @flow
-def single_book_flow(book_folder_path: str) -> None:
-    initiate_environment() # intiate environment
-    book_folder = Path(book_folder_path) # taking in a book folder path and validating it
+def setup_phase_flow():
+    # the environment setup phase should happen only once in the entire pararllel flow run
+    initiated_environment = initiate_environment() # intiate environment
+    return initiated_environment
 
+@flow
+def single_book_flow(initiated_environment, input_book_folder_path: str, output_folder_path: str) -> None:
+    
+    book_folder = Path(input_book_folder_path) # taking in a book folder path and validating it
+    output_book_folder = Path(output_folder_path) / book_folder.name
+    environment = initiated_environment  # ensuring that the environment is initiated before proceeding further
+    
+    # begin image processing
+    image_data = process_image_folder(environment.image_processors, str(book_folder)) # process the book folder to get images data
+    save_binary_images_to_disk(image_data, output_book_folder) # save the binary images to disk
     
     return None
