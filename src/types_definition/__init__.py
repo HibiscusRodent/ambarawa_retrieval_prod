@@ -1,4 +1,4 @@
-from types.main import (
+from types_definition.main import (
     AggregatedtoLanceOutput,
     ProcessedBookImageData,
 )

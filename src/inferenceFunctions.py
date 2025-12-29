@@ -1,6 +1,7 @@
 from lancedb.db import DBConnection
 from baml_py.baml_py import BamlImagePy
-from image_processings import ProcessedBookDict
+from image_processings import ImageProcessors
+from types_definition import ProcessedBookImageData
 from pathlib import Path
 import shutil
 
@@ -10,8 +11,6 @@ from rich.traceback import install
 # TODO : configure the lancedb connnection and make sure that the overwrite mode on
 # create table is turned off in real production
 from lancedb import connect
-
-from image_processings import ImageProcessors
 
 from baml_client.sync_client import b
 from baml_client.types import (
@@ -27,7 +26,7 @@ from pydantic import BaseModel
 from prefect import task, flow
 from prefect.futures import wait, PrefectFuture
 from prefect.cache_policies import NO_CACHE
-from prefect_dask import DaskTaskRunner
+from prefect_dask.task_runners import DaskTaskRunner
 from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 
@@ -99,7 +98,7 @@ def initialize_image_processor() -> ImageProcessors:
 @task
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
-) -> ProcessedBookDict:
+) -> ProcessedBookImageData:
     """
     Process the images in the specified book folder.
 
@@ -111,7 +110,7 @@ def process_image_folder(
         ProcessedBookDict: The processed data containing book ID and images.
     """
     logger = get_run_logger()
-    data: ProcessedBookDict = processor.process_book_folder(Path(folder_path))
+    data: ProcessedBookImageData = processor.process_book_folder(Path(folder_path))
     logger.info(
         "Processed book folder - Book ID: %s, Image Count: %d, Folder Path: %s",
         data.book_id,
@@ -122,7 +121,7 @@ def process_image_folder(
 
 
 @task
-def save_images_locally(processed_data: ProcessedBookDict, output_root: Path) -> Path:
+def save_images_locally(processed_data: ProcessedBookImageData, output_root: Path) -> Path:
     """
     Save binary images to the local file system.
 
@@ -539,7 +538,7 @@ def process_one_book_flow(
     ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
-    images_data: ProcessedBookDict = process_image_folder(
+    images_data: ProcessedBookImageData = process_image_folder(
         ip, str(sample_book_folder_path)
     )
 

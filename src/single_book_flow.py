@@ -1,24 +1,14 @@
 # ---- importing modules ----
 
 import shutil
-from venv import logger
-from zipfile import Path
-from image_processings import ImageProcessors, ProcessedBookImageData
-from baml_client.sync_client import b
-from baml_client.types import (
-    BookConditionData,
-    RawAnalysis,
-    BookContentHints,
-    BookMainData,
-    BookPubAndDistDetails,
-)
-
+from image_processings import ImageProcessors
+from types_definition import ProcessedBookImageData, AggregatedtoLanceOutput
 
 # ---- import modules for the prefect functionalities
 from prefect import flow, task
 from prefect.logging import get_run_logger
 
-#---- misc modules
+# ---- misc modules
 from dotenv import load_dotenv
 from rich.traceback import install
 from pathlib import Path
@@ -26,13 +16,20 @@ from pathlib import Path
 
 @task
 def initiate_environment():
-    env_keys_loader = load_dotenv()     # load dotenv variables for baml to access api key in the .env file
-    rich_log_prettier = install()  # install rich traceback for better error logging
-    logger = get_run_logger() # setting up logger for prefect
-    ip = ImageProcessors()  # initiate image processor to make sure all dependencies are loaded
+    """Initialize the environment for book processing.
+    
+    Loads environment variables, sets up rich traceback, initializes logger
+    and ImageProcessors to ensure all dependencies are loaded.
+    
+    Returns:
+        None
+    """
+    load_dotenv()  # load dotenv variables for baml to access api key in the .env file
+    install()  # install rich traceback for better error logging
+    logger = get_run_logger()  # setting up logger for prefect
+    ImageProcessors()  # initiate image processor to make sure all dependencies are loaded
     
     # print info logger to make sure that necessary environment variables are loaded
-    logger.info(f"Loaded environment variables: {env_keys_loader}")
     logger.info("Environment configured and variables loaded.")
     return None
 
@@ -57,10 +54,11 @@ def save_binary_images_to_disk(image_data: ProcessedBookImageData, output_folder
     Save binary images to the specified output folder on disk.
 
     Args:
-        binary_images: List of binary image data to be saved.
+        image_data: ProcessedBookImageData containing binary images and book ID.
         output_folder: Path object representing the folder where images
                        will be saved.
     """
+    logger = get_run_logger()
     book_id: str = image_data.book_id
     book_output_folder: Path = output_folder / book_id
     
@@ -95,16 +93,9 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
         folder_path: Path to the folder containing book images.
         
     Returns:
-        ProcessedBookDict: A dictionary containing processed images and book ID.
-        The dictionary has the following structure:
-            {
-                "book_id": str,
-                "base64_images": list[str],
-                "binary_images": list[bytes], wil be saved as binary images into the disk
-                "baml_images": list[b.BamlImage], will be used in the BAML inference
-            }
+        ProcessedBookImageData: A data class containing processed images and book ID.
     """
-    
+    logger = get_run_logger()
     image_data: ProcessedBookImageData = image_processor.process_book_folder(Path(folder_path))
     logger.info(f"Processed book with id of: {image_data.book_id}")
     logger.info(f"Got a total of {len(image_data.binary_images)} images")

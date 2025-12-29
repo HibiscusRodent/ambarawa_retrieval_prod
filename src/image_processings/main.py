@@ -9,6 +9,8 @@ import pymupdf as fitz
 import io
 from typing import Literal, Self, cast
 from baml_py import Image as BamlImage
+from types_definition import ProcessedBookImageData
+
 
 from logger import logger
 import psutil
@@ -16,7 +18,6 @@ import os
 
 # for parallelizations
 from joblib import Parallel, delayed
-from types import ProcessedBookImageData
 
 
 
