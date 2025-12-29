@@ -7,8 +7,9 @@ import base64
 import PIL.Image
 import pymupdf as fitz
 import io
-from typing import Literal, Self, TypedDict, cast
+from typing import Literal, Self, cast
 from baml_py import Image as BamlImage
+from pydantic import BaseModel, ConfigDict
 
 from logger import logger
 import psutil
@@ -18,9 +19,9 @@ import os
 from joblib import Parallel, delayed
 
 
-class ProcessedBookDict(TypedDict):
+class ProcessedBookDict(BaseModel):
     """
-    TypedDict representing the return type for processed book data.
+    Pydantic model representing the return type for processed book data.
 
     Fields:
         book_id: The unique identifier of the book, typically the folder name.
@@ -31,6 +32,8 @@ class ProcessedBookDict(TypedDict):
         baml_images: A list of BAML Image objects created from the base64 images.
                     These are suitable for passing directly into BAML functions that accept images.
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     book_id: str
     base64_images: list[str]
@@ -318,12 +321,12 @@ class ImageProcessors:
                 book_id,
                 data_type,
             )
-            return {
-                "book_id": book_id,
-                "base64_images": [],
-                "binary_images": [],
-                "baml_images": [],
-            }
+            return ProcessedBookDict(
+                book_id=book_id,
+                base64_images=[],
+                binary_images=[],
+                baml_images=[],
+            )
 
         after_sources_mem = self._get_memory_usage_mb()
         logger.info(
@@ -348,12 +351,12 @@ class ImageProcessors:
         )
 
         if not results:
-            return {
-                "book_id": book_id,
-                "base64_images": [],
-                "binary_images": [],
-                "baml_images": [],
-            }
+            return ProcessedBookDict(
+                book_id=book_id,
+                base64_images=[],
+                binary_images=[],
+                baml_images=[],
+            )
 
         # 3. Unzip results into separate lists
         # zip(*results) returns two tuples, we convert them to lists
@@ -398,12 +401,12 @@ class ImageProcessors:
                 len(baml_images),
             )
 
-        return {
-            "book_id": book_id,
-            "base64_images": cast(list[str], base64_images),
-            "binary_images": cast(list[bytes], binary_images),
-            "baml_images": baml_images,
-        }
+        return ProcessedBookDict(
+            book_id=book_id,
+            base64_images=cast(list[str], base64_images),
+            binary_images=cast(list[bytes], binary_images),
+            baml_images=baml_images,
+        )
 
 
 def main() -> None:
