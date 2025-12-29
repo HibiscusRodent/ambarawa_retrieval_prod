@@ -14,4 +14,4 @@ Main Classes:
 
 from image_processings.main import ImageProcessors, ProcessedBookDict
 
-__all__ = ["ImageProcessors", "ProcessedBookDict"]
+__all__: list[str] = ["ImageProcessors", "ProcessedBookDict"]

@@ -1,6 +1,6 @@
 from lancedb.db import DBConnection
 from baml_py.baml_py import BamlImagePy
-from image_processors import ProcessedBookData
+from image_processings import ProcessedBookDict
 from pathlib import Path
 import shutil
 
@@ -11,7 +11,7 @@ from rich.traceback import install
 # create table is turned off in real production
 from lancedb import connect
 
-from image_processors import ImageProcessors, BookFolderPathData
+from image_processings import ImageProcessors
 
 from baml_client.sync_client import b
 from baml_client.types import (
@@ -99,7 +99,7 @@ def initialize_image_processor() -> ImageProcessors:
 @task
 def process_image_folder(
     processor: ImageProcessors, folder_path: str
-) -> ProcessedBookData:
+) -> ProcessedBookDict:
     """
     Process the images in the specified book folder.
 
@@ -108,11 +108,10 @@ def process_image_folder(
         folder_path: The path to the book folder.
 
     Returns:
-        ProcessedBookData: The processed data containing book ID and images.
+        ProcessedBookDict: The processed data containing book ID and images.
     """
     logger = get_run_logger()
-    book_folder = BookFolderPathData(path=folder_path)
-    data: ProcessedBookData = processor.process_book_folder(book_folder)
+    data: ProcessedBookDict = processor.process_book_folder(Path(folder_path))
     logger.info(
         "Processed book folder - Book ID: %s, Image Count: %d, Folder Path: %s",
         data.book_id,
@@ -123,7 +122,7 @@ def process_image_folder(
 
 
 @task
-def save_images_locally(processed_data: ProcessedBookData, output_root: Path) -> Path:
+def save_images_locally(processed_data: ProcessedBookDict, output_root: Path) -> Path:
     """
     Save binary images to the local file system.
 
@@ -419,14 +418,14 @@ def prepare_data_for_ingestion(
         List[Dict[str, Any]]: A list containing the dictionary to be ingested.
     """
     logger = get_run_logger()
-    
+
     logger.debug("Dumping data for ingestion for Book ID: %s", book_id)
     # Streamlined by dumping once
     bm = book_main.model_dump()
     bp = book_pub.model_dump()
     bc = book_condition.model_dump()
     bh = book_content.model_dump()
-    
+
     logger.debug("Constructed data for ingestion for Book ID: %s", book_id)
     return [
         {
@@ -495,12 +494,15 @@ def ingest_to_lancedb(
         logger.info(f"Successfully opened table: {table_name}")
         active_tbl = active_tbl.add(data)
         return active_tbl
-    
+
     except Exception as e:
-        logger.error("Please create the table before proceeding. Table may not exist yet.")
+        logger.error(
+            "Please create the table before proceeding. Table may not exist yet."
+        )
         logger.error(f"Here's a list of the available tables: {db.list_tables()}")
         raise RuntimeError(f"Failed to open table '{table_name}': {e}") from e
     return None
+
 
 @flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
 def process_one_book_flow(
@@ -537,7 +539,7 @@ def process_one_book_flow(
     ip: ImageProcessors = initialize_image_processor()
 
     # 3. Image Processing
-    images_data: ProcessedBookData = process_image_folder(
+    images_data: ProcessedBookDict = process_image_folder(
         ip, str(sample_book_folder_path)
     )
 
