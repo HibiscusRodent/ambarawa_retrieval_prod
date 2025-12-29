@@ -110,13 +110,13 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
     logger.info(f"Got a total of {len(image_data.binary_images)} images")
     return image_data
         
-# the flow that encapsulates all process within the book processing data
 @flow
 def setup_phase_flow():
     # the environment setup phase should happen only once in the entire pararllel flow run
     initiated_environment = initiate_environment() # intiate environment
     return initiated_environment
 
+# the flow that encapsulates all process within the book processing data
 @flow
 def single_book_flow(initiated_environment, input_book_folder_path: str, output_folder_path: str) -> None:
     
