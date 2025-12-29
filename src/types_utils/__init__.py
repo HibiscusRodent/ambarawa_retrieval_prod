@@ -1,4 +1,4 @@
-from pydantic_to_lance_schema import (
+from types_utils.main import (
     pydantic_to_arrow_schema
 )
 
