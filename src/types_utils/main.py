@@ -53,12 +53,12 @@ from typing import (
     Any,
     Dict,
     ForwardRef,
-    GenericAlias, # pyright: ignore[reportAttributeAccessIssue]
+    GenericAlias,  # pyright: ignore[reportAttributeAccessIssue]
     List,
     Optional,
     Type,
     Union,
-    _GenericAlias, # type: ignore
+    _GenericAlias,  # type: ignore
     get_args,
     get_origin,
     get_type_hints,
@@ -82,7 +82,10 @@ def _get_field_tz(field: FieldInfo) -> Optional[str]:
         The timezone string if specified, otherwise None.
     """
     if hasattr(field, "json_schema_extra") and field.json_schema_extra:
-        return field.json_schema_extra.get("tz")
+        if isinstance(field.json_schema_extra, dict):
+            tz_value = field.json_schema_extra.get("tz")
+            if isinstance(tz_value, str):
+                return tz_value
     return None
 
 
@@ -255,20 +258,24 @@ def pydantic_type_to_arrow_type(
 
     # Handle generic aliases (list[T], Optional[T], etc.)
     if isinstance(tp, (_GenericAlias, GenericAlias)):
-        origin = tp.__origin__
-        args = tp.__args__
+        origin = getattr(tp, "__origin__", None)
+        args = getattr(tp, "__args__", ())
 
         if origin is list:
-            child = args[0]
-            # KEY FIX: Recursively handle nested types including Pydantic models
-            # Check if child is a ForwardRef and warn
-            if isinstance(child, (ForwardRef, str)):
-                raise TypeError(
-                    f"Unresolved forward reference in list: {child}. "
-                    "Ensure get_type_hints() is used to resolve forward references."
-                )
-            child_arrow_type = pydantic_type_to_arrow_type(child, field)
-            return pa.list_(child_arrow_type)
+            if args:
+                child = args[0]
+                # KEY FIX: Recursively handle nested types including Pydantic models
+                # Check if child is a ForwardRef and warn
+                if isinstance(child, (ForwardRef, str)):
+                    raise TypeError(
+                        f"Unresolved forward reference in list: {child}. "
+                        "Ensure get_type_hints() is used to resolve forward references."
+                    )
+                child_arrow_type = pydantic_type_to_arrow_type(child, field)
+                return pa.list_(child_arrow_type)
+            else:
+                # Untyped list, default to string
+                return pa.list_(pa.utf8())
 
         elif origin is Union:
             # Handle Optional[T] (Union[T, None])
@@ -290,7 +297,8 @@ def pydantic_type_to_arrow_type(
             return pydantic_type_to_arrow_type(non_none_args[0], field)
 
     # Fall back to primitive type conversion
-    return _python_type_to_arrow_type(tp, field)
+    # Cast to Type[Any] to handle edge cases
+    return _python_type_to_arrow_type(tp, field)  # type: ignore[arg-type]
 
 
 def _is_nullable_field(field: FieldInfo) -> bool:
@@ -312,8 +320,8 @@ def _is_nullable_field(field: FieldInfo) -> bool:
 
     # Handle generic aliases (Union, Optional)
     if isinstance(annotation, (_GenericAlias, GenericAlias)):
-        origin = annotation.__origin__
-        args = annotation.__args__
+        origin = getattr(annotation, "__origin__", None)
+        args = getattr(annotation, "__args__", ())
 
         if origin is Union:
             # Check if None is in the union args
@@ -329,7 +337,9 @@ def _is_nullable_field(field: FieldInfo) -> bool:
             from lancedb.pydantic import FixedSizeListMixin
 
             if issubclass(annotation, FixedSizeListMixin):
-                return annotation.nullable()
+                # Use hasattr to check if nullable method exists
+                if hasattr(annotation, "nullable") and callable(annotation.nullable):  # type: ignore[attr-defined]
+                    return annotation.nullable()  # type: ignore[attr-defined]
         except ImportError:
             pass
 
@@ -482,7 +492,7 @@ class LanceModelSchemaOverride:
         Returns:
             pa.Schema: The PyArrow schema for this model.
         """
-        return pydantic_to_arrow_schema(cls)
+        return pydantic_to_arrow_schema(cls)  # type: ignore[arg-type]
 
 
 # Type mapping reference for documentation and debugging
