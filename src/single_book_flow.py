@@ -225,6 +225,8 @@ def analyze_book_condition(
     This task accepts base64-encoded images instead of BamlImage objects to ensure
     serializability when using DaskTaskRunner for parallel execution.
 
+    Implements retry logic with maximum 6 attempts to handle BAML parsing errors.
+
     Args:
         base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book being analyzed.
@@ -234,27 +236,46 @@ def analyze_book_condition(
         BookConditionData: The analyzed book condition data.
     """
     logger = get_run_logger()
-    try:
-        logger.info("Starting book condition analysis for Book ID: %s", book_id)
-        baml_images = base64_to_baml_images(base64_images)
-        data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
-        save_to_json(data, output_folder / f"{book_id}_book_condition_data.json")
+    max_retries = 6
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(
+                "Starting book condition analysis for Book ID: %s (Attempt %d/%d)",
+                book_id,
+                attempt,
+                max_retries,
+            )
+            baml_images = base64_to_baml_images(base64_images)
+            data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
+            save_to_json(data, output_folder / f"{book_id}_book_condition_data.json")
 
-        logger.info(
-            "Analyzed book condition - Book ID: %s, Condition: %s, Print Type: %s",
-            book_id,
-            data.Condition,
-            data.PrintType,
-        )
-        return data
-    except Exception as e:
-        logger.exception(
-            "Failed to analyze book condition - Book ID: %s, Error: %s (Exception type: %s)",
-            book_id,
-            str(e),
-            type(e).__name__,
-        )
-        raise  # Re-raise to properly propagate the error
+            logger.info(
+                "Analyzed book condition - Book ID: %s, Condition: %s, Print Type: %s",
+                book_id,
+                data.Condition,
+                data.PrintType,
+            )
+            return data
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    "Failed to analyze book condition - Book ID: %s, Attempt %d/%d, Error: %s (Exception type: %s). Retrying...",
+                    book_id,
+                    attempt,
+                    max_retries,
+                    str(e),
+                    type(e).__name__,
+                )
+            else:
+                logger.exception(
+                    "Failed to analyze book condition after %d attempts - Book ID: %s, Error: %s (Exception type: %s)",
+                    max_retries,
+                    book_id,
+                    str(e),
+                    type(e).__name__,
+                )
+                raise  # Re-raise after all retries exhausted
 
 
 @task
@@ -270,6 +291,8 @@ def run_raw_analysis(
     This task accepts base64-encoded images instead of BamlImage objects to ensure
     serializability when using DaskTaskRunner for parallel execution.
 
+    Implements retry logic with maximum 6 attempts to handle BAML parsing errors.
+
     Args:
         base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book being analyzed.
@@ -279,29 +302,48 @@ def run_raw_analysis(
         RawAnalysis: The analyzed raw analysis data.
     """
     logger = get_run_logger()
-    try:
-        logger.info("Starting raw visual analysis for Book ID: %s", book_id)
-        baml_images = base64_to_baml_images(base64_images)
-        raw_analysis_data = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
-        save_to_json(
-            raw_analysis_data, output_folder / f"{book_id}_book_condition_data.json"
-        )
+    max_retries = 6
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(
+                "Starting raw visual analysis for Book ID: %s (Attempt %d/%d)",
+                book_id,
+                attempt,
+                max_retries,
+            )
+            baml_images = base64_to_baml_images(base64_images)
+            raw_analysis_data = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
+            save_to_json(
+                raw_analysis_data, output_folder / f"{book_id}_book_condition_data.json"
+            )
 
-        logger.info(
-            "Analyzed raw visual analysis - Book ID: %s, Condition: %s, Print Type: %s",
-            book_id,
-            bool(raw_analysis_data.coverPageDescription),
-            bool(raw_analysis_data.backCoverDescription),
-        )
-        return raw_analysis_data
-    except Exception as e:
-        logger.exception(
-            "Failed to analyze raw visual analysis - Book ID: %s, Error: %s (Exception type: %s)",
-            book_id,
-            str(e),
-            type(e).__name__,
-        )
-        raise  # Re-raise to properly propagate the error
+            logger.info(
+                "Analyzed raw visual analysis - Book ID: %s, Condition: %s, Print Type: %s",
+                book_id,
+                bool(raw_analysis_data.coverPageDescription),
+                bool(raw_analysis_data.backCoverDescription),
+            )
+            return raw_analysis_data
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    "Failed to analyze raw visual analysis - Book ID: %s, Attempt %d/%d, Error: %s (Exception type: %s). Retrying...",
+                    book_id,
+                    attempt,
+                    max_retries,
+                    str(e),
+                    type(e).__name__,
+                )
+            else:
+                logger.exception(
+                    "Failed to analyze raw visual analysis after %d attempts - Book ID: %s, Error: %s (Exception type: %s)",
+                    max_retries,
+                    book_id,
+                    str(e),
+                    type(e).__name__,
+                )
+                raise  # Re-raise after all retries exhausted
 
 
 @task
@@ -318,6 +360,8 @@ def analyze_content_hints(
     This task accepts base64-encoded images instead of BamlImage objects to ensure
     serializability when using DaskTaskRunner for parallel execution.
 
+    Implements retry logic with maximum 6 attempts to handle BAML parsing errors.
+
     Args:
         base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
@@ -328,32 +372,51 @@ def analyze_content_hints(
         BookContentHints: The analysis result.
     """
     logger = get_run_logger()
-    try:
-        logger.info("Starting content hints analysis for Book ID: %s", book_id)
-        baml_images = base64_to_baml_images(base64_images)
-        hints = b.GetBookContentHints(
-            MultiImages=baml_images,
-            bookId=book_id,
-            RawVisualNote=raw_visual_data_json,
-        )
-        save_to_json(hints, output_folder / f"{book_id}_book_content_hints.json")
+    max_retries = 6
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(
+                "Starting content hints analysis for Book ID: %s (Attempt %d/%d)",
+                book_id,
+                attempt,
+                max_retries,
+            )
+            baml_images = base64_to_baml_images(base64_images)
+            hints = b.GetBookContentHints(
+                MultiImages=baml_images,
+                bookId=book_id,
+                RawVisualNote=raw_visual_data_json,
+            )
+            save_to_json(hints, output_folder / f"{book_id}_book_content_hints.json")
 
-        logger.info(
-            "Analyzed content hints - Book ID: %s, Is Fiction: %s, Genre Count: %d, NER Count: %d",
-            book_id,
-            hints.isFiction,
-            len(hints.bookGenre) if hints.bookGenre else 0,
-            len(hints.bookNERData) if hints.bookNERData else 0,
-        )
-        return hints
-    except Exception as e:
-        logger.exception(
-            "Failed to analyze content hints - Book ID: %s, Error: %s (Exception type: %s)",
-            book_id,
-            str(e),
-            type(e).__name__,
-        )
-        raise  # Re-raise to properly propagate the error
+            logger.info(
+                "Analyzed content hints - Book ID: %s, Is Fiction: %s, Genre Count: %d, NER Count: %d",
+                book_id,
+                hints.isFiction,
+                len(hints.bookGenre) if hints.bookGenre else 0,
+                len(hints.bookNERData) if hints.bookNERData else 0,
+            )
+            return hints
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    "Failed to analyze content hints - Book ID: %s, Attempt %d/%d, Error: %s (Exception type: %s). Retrying...",
+                    book_id,
+                    attempt,
+                    max_retries,
+                    str(e),
+                    type(e).__name__,
+                )
+            else:
+                logger.exception(
+                    "Failed to analyze content hints after %d attempts - Book ID: %s, Error: %s (Exception type: %s)",
+                    max_retries,
+                    book_id,
+                    str(e),
+                    type(e).__name__,
+                )
+                raise  # Re-raise after all retries exhausted
 
 
 @task
@@ -367,6 +430,8 @@ def analyze_main_data(
     This task accepts base64-encoded images instead of BamlImage objects to ensure
     serializability when using DaskTaskRunner for parallel execution.
 
+    Implements retry logic with maximum 6 attempts to handle BAML parsing errors.
+
     Args:
         base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
@@ -377,33 +442,52 @@ def analyze_main_data(
         BookMainData: The analysis result.
     """
     logger = get_run_logger()
-    try:
-        logger.info("Starting main data extraction for Book ID: %s", book_id)
-        baml_images = base64_to_baml_images(base64_images)
-        main_data = b.GetBookMainData(
-            MultiImages=baml_images,
-            bookId=book_id,
-            RawVisualNote=raw_visual_json,
-        )
-        save_to_json(main_data, output_folder / f"{book_id}_book_main_data.json")
+    max_retries = 6
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(
+                "Starting main data extraction for Book ID: %s (Attempt %d/%d)",
+                book_id,
+                attempt,
+                max_retries,
+            )
+            baml_images = base64_to_baml_images(base64_images)
+            main_data = b.GetBookMainData(
+                MultiImages=baml_images,
+                bookId=book_id,
+                RawVisualNote=raw_visual_json,
+            )
+            save_to_json(main_data, output_folder / f"{book_id}_book_main_data.json")
 
-        logger.info(
-            "Analyzed main book data - Book ID: %s, Title: %s, ISBN-10: %s, ISBN-13: %s, Author Count: %d",
-            book_id,
-            main_data.title,
-            main_data.isbn_10,
-            main_data.isbn_13,
-            len(main_data.authors) if main_data.authors else 0,
-        )
-        return main_data
-    except Exception as e:
-        logger.exception(
-            "Failed to analyze main book data - Book ID: %s, Error: %s (Exception type: %s)",
-            book_id,
-            str(e),
-            type(e).__name__,
-        )
-        raise  # Re-raise to properly propagate the error
+            logger.info(
+                "Analyzed main book data - Book ID: %s, Title: %s, ISBN-10: %s, ISBN-13: %s, Author Count: %d",
+                book_id,
+                main_data.title,
+                main_data.isbn_10,
+                main_data.isbn_13,
+                len(main_data.authors) if main_data.authors else 0,
+            )
+            return main_data
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    "Failed to analyze main book data - Book ID: %s, Attempt %d/%d, Error: %s (Exception type: %s). Retrying...",
+                    book_id,
+                    attempt,
+                    max_retries,
+                    str(e),
+                    type(e).__name__,
+                )
+            else:
+                logger.exception(
+                    "Failed to analyze main book data after %d attempts - Book ID: %s, Error: %s (Exception type: %s)",
+                    max_retries,
+                    book_id,
+                    str(e),
+                    type(e).__name__,
+                )
+                raise  # Re-raise after all retries exhausted
 
 
 @task
@@ -417,6 +501,8 @@ def analyze_publisher_details(
     This task accepts base64-encoded images instead of BamlImage objects to ensure
     serializability when using DaskTaskRunner for parallel execution.
 
+    Implements retry logic with maximum 6 attempts to handle BAML parsing errors.
+
     Args:
         base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
@@ -427,34 +513,53 @@ def analyze_publisher_details(
         BookPubAndDistDetails: The analysis result.
     """
     logger = get_run_logger()
-    try:
-        logger.info("Starting publisher details extraction for Book ID: %s", book_id)
-        baml_images = base64_to_baml_images(base64_images)
-        details: BookPubAndDistDetails = b.GetBookPublisherData(
-            MultiImages=baml_images,
-            bookId=book_id,
-            RawVisualNote=raw_visual_json,
-        )
+    max_retries = 6
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(
+                "Starting publisher details extraction for Book ID: %s (Attempt %d/%d)",
+                book_id,
+                attempt,
+                max_retries,
+            )
+            baml_images = base64_to_baml_images(base64_images)
+            details: BookPubAndDistDetails = b.GetBookPublisherData(
+                MultiImages=baml_images,
+                bookId=book_id,
+                RawVisualNote=raw_visual_json,
+            )
 
-        save_to_json(
-            details, output_folder / f"{book_id}_book_pub_and_dist_details.json"
-        )
+            save_to_json(
+                details, output_folder / f"{book_id}_book_pub_and_dist_details.json"
+            )
 
-        logger.info(
-            "Analyzed publisher details - Book ID: %s, Publisher: %s, Distributor: %s",
-            book_id,
-            details.publisher_name,
-            details.distributor_name,
-        )
-        return details
-    except Exception as e:
-        logger.exception(
-            "Failed to analyze publisher details - Book ID: %s, Error: %s (Exception type: %s)",
-            book_id,
-            str(e),
-            type(e).__name__,
-        )
-        raise  # Re-raise to properly propagate the error
+            logger.info(
+                "Analyzed publisher details - Book ID: %s, Publisher: %s, Distributor: %s",
+                book_id,
+                details.publisher_name,
+                details.distributor_name,
+            )
+            return details
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    "Failed to analyze publisher details - Book ID: %s, Attempt %d/%d, Error: %s (Exception type: %s). Retrying...",
+                    book_id,
+                    attempt,
+                    max_retries,
+                    str(e),
+                    type(e).__name__,
+                )
+            else:
+                logger.exception(
+                    "Failed to analyze publisher details after %d attempts - Book ID: %s, Error: %s (Exception type: %s)",
+                    max_retries,
+                    book_id,
+                    str(e),
+                    type(e).__name__,
+                )
+                raise  # Re-raise after all retries exhausted
 
 
 @task
