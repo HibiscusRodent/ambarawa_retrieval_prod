@@ -239,7 +239,6 @@ def analyze_main_data(baml_images: Any, book_id: str, raw_visual_json: str, outp
     Returns:
         BookMainData: The analysis result.
     """
-    logger = get_run_logger()
     try:
         logger.info("Starting main data extraction for Book ID: %s", book_id)
         main_data = b.GetBookMainData(
@@ -265,16 +264,50 @@ def analyze_main_data(baml_images: Any, book_id: str, raw_visual_json: str, outp
             str(e),
             type(e).__name__,
         )
-        return BookMainData.model_construct(
-            title=None,
-            isbn_10=None,
-            isbn_13=None,
-            published_year=None,
-            language=[],
-            script=[],
-            authors=[],
-            translator=[],
+        return BookMainData.model_construct()
+    
+@task
+def analyze_publisher_details(baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path) -> BookPubAndDistDetails:
+    """
+    Extract publisher and distributor details using BAML and save the result.
+    Takes in halso a raw visual analysis data in string format to enrich the extraction.
+
+    Args:
+        baml_images: The BAML-formatted images.
+        book_id: The ID of the book.
+        raw_visual_json: simple string representation of RawAnalysis.
+        output_folder: The folder to save the JSON result.
+
+    Returns:
+        BookPubAndDistDetails: The analysis result.
+    """
+    try:
+        logger.info("Starting publisher details extraction for Book ID: %s", book_id)
+        details: BookPubAndDistDetails = b.GetBookPublisherData(
+            MultiImages = baml_images,
+            bookId = book_id,
+            RawVisualNote = raw_visual_json,
         )
+
+        save_to_json(
+            details, output_folder / f"{book_id}_book_pub_and_dist_details.json"
+        )
+
+        logger.info(
+            "Analyzed publisher details - Book ID: %s, Publisher: %s, Distributor: %s",
+            book_id,
+            details.publisher_name,
+            details.distributor_name,
+        )
+        return details
+    except Exception as e:
+        logger.exception(
+            "Failed to analyze publisher details - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )
+        return BookPubAndDistDetails.model_construct()
 
 # run the environment setup phase only once in the place where the flow is being called        
 def setup_phase_flow():
@@ -311,6 +344,10 @@ def single_book_flow(initiated_environment, input_book_folder_path: str, output_
     raw_analysis_data_json = run_raw_analysis(baml_images, book_id, output_book_folder).model_dump_json()
     
     # second phase of the inference, dependent on the raw analysis result
+    # the three analysis runs in parallel
     analyze_content_hints(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    analyze_main_data(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    analyze_publisher_details(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    
     
     return None
