@@ -404,7 +404,7 @@ def prepare_data_for_ingestion(
 
 # lanceDB ingestion phases
 @task
-def ingest_to_lance_db(active_lance_db,, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput):
+def ingest_to_lance_db(active_lance_db, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput):
     """
     Ingest data into LanceDB. It takes in the constructed aggregated output data and
     writes it into the specified LanceDB table. The table has to be pre-created with the
@@ -433,12 +433,9 @@ def setup_phase_flow(uri: Path, lance_table_name: str):
 
 # the flow that encapsulates all process within the book processing data
 @flow
-def single_book_flow(
-    initiated_environment, input_book_folder_path: str, output_folder_path: str
-) -> None:
-    book_folder = Path(
-        input_book_folder_path
-    )  # taking in a book folder path and validating it
+def single_book_flow(initiated_environment, input_book_folder_path: str, output_folder_path: str) -> None:
+    
+    book_folder = Path(input_book_folder_path)  # taking in a book folder path and validating it
     output_book_folder = Path(output_folder_path) / book_folder.name
     environment = initiated_environment  # ensuring that the environment is initiated before proceeding further
 
@@ -478,6 +475,20 @@ def single_book_flow(
         publisher_details_data=publisher_details_data,
     )
     
+    # ingest the constructed data into lanceDB
+    ingest_to_lance_db(environment.active_lance_db, environment.lance_table_name, aggregated_output)
+    return None
+
+@flow
+def example_run():
+    lance_db_path = Path("data/lance_db_test")
+    lance_table_name = "books_test_table"
+    input_book_folder_path = Path("D:/projects/ambarawa_retrieval_prod/sample_data/rak-0003_baris-005_buku-30")
     
+    setup_phase_flow_instance = setup_phase_flow(lance_db_path, lance_table_name)
+    single_book_flow(setup_phase_flow_instance, str(input_book_folder_path), "data/output")
     
     return None
+
+if __name__ == "__main__":
+    example_run()
