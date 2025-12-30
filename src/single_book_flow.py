@@ -23,6 +23,8 @@ import pyarrow as pa
 from prefect import flow, task
 from prefect.logging import get_run_logger
 from prefect.cache_policies import NO_CACHE
+from prefect.futures import PrefectFuture
+from prefect_dask.task_runners import DaskTaskRunner
 
 # ---- misc modules
 from dotenv import load_dotenv
@@ -562,11 +564,17 @@ def setup_phase_flow(uri: Path, lance_table_name: str) -> InitializedEnvironment
 
 
 # the flow that encapsulates all process within the book processing data
-@flow
+@flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
 def single_book_flow(
     initiated_environment, input_book_folder_path: str, output_folder_path: str
 ) -> None:
     """Main flow to process a single book folder through the entire analysis pipeline.
+
+    This flow uses DaskTaskRunner to execute BAML inference tasks in parallel where possible.
+    The parallelization strategy is:
+    - Phase 1: book_condition and raw_analysis run in parallel (no dependencies)
+    - Phase 2: content_hints, main_data, and pub_details run in parallel
+      (all depend on raw_analysis result)
 
     Args:
         initiated_environment: Initialized environment containing image processors and LanceDB connection.
@@ -595,28 +603,52 @@ def single_book_flow(
     book_id = image_data.book_id
     logger.info("Processing Book ID: %s", book_id)
 
-    # Phase 2: First BAML Inference (parallel-capable tasks)
+    # Phase 2: First BAML Inference for book condition and raw analysis, each running in parallel
     logger.info("========== Phase 2: First BAML Inference ==========")
-    logger.info("Running book condition and raw analysis in parallel")
-    book_condition_data = analyze_book_condition(
+    logger.info("Running book condition and raw analysis in parallel using futures")
+
+    # Submit both tasks in parallel using futures
+    book_condition_future: PrefectFuture[BookConditionData] = (
+        analyze_book_condition.submit(baml_images, book_id, output_book_folder)
+    )
+    raw_analysis_future: PrefectFuture[RawAnalysis] = run_raw_analysis.submit(
         baml_images, book_id, output_book_folder
     )
 
-    raw_analysis_data = run_raw_analysis(baml_images, book_id, output_book_folder)
-    raw_analysis_data_json = raw_analysis_data.model_dump_json()
+    # Wait for raw_analysis to complete first as it's needed for Phase 3
+    raw_analysis_data: RawAnalysis = raw_analysis_future.result()
+    raw_analysis_data_json: str = raw_analysis_data.model_dump_json()
+    logger.info("Raw analysis completed for Book ID: %s", book_id)
 
-    # Phase 3: Second BAML Inference (dependent on raw analysis)
+    # Phase 3: Second BAML Inference (dependent on raw analysis). All of them run in parallel
     logger.info("========== Phase 3: Second BAML Inference ==========")
-    logger.info("Running content hints, main data, and publisher details analysis")
-    contetent_hints_data = analyze_content_hints(
+    logger.info(
+        "Running content hints, main data, and publisher details analysis in parallel"
+    )
+
+    # Submit all three tasks in parallel using futures
+    content_hints_future: PrefectFuture[BookContentHints] = (
+        analyze_content_hints.submit(
+            baml_images, book_id, raw_analysis_data_json, output_book_folder
+        )
+    )
+    main_data_future: PrefectFuture[BookMainData] = analyze_main_data.submit(
         baml_images, book_id, raw_analysis_data_json, output_book_folder
     )
-    main_data = analyze_main_data(
-        baml_images, book_id, raw_analysis_data_json, output_book_folder
+    publisher_details_future: PrefectFuture[BookPubAndDistDetails] = (
+        analyze_publisher_details.submit(
+            baml_images, book_id, raw_analysis_data_json, output_book_folder
+        )
     )
-    publisher_details_data = analyze_publisher_details(
-        baml_images, book_id, raw_analysis_data_json, output_book_folder
-    )
+
+    # Wait for all Phase 3 futures to complete and get results
+    contetent_hints_data: BookContentHints = content_hints_future.result()
+    main_data: BookMainData = main_data_future.result()
+    publisher_details_data: BookPubAndDistDetails = publisher_details_future.result()
+
+    # Also ensure book_condition_data from Phase 2 is resolved
+    book_condition_data: BookConditionData = book_condition_future.result()
+    logger.info("All BAML inference tasks completed for Book ID: %s", book_id)
 
     # Phase 4: Data Aggregation
     logger.info("========== Phase 4: Data Aggregation ==========")
