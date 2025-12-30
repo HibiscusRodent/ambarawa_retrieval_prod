@@ -5,12 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "autotyping>=24.9.0",
     "baml-py>=0.215.2",
     "dotenv>=0.9.9",
+    "infer-types>=1.0.0",
     "joblib>=1.5.3",
     "lancedb>=0.26.0",
+    "libcst>=1.8.6",
     "logfire>=4.16.0",
+    "logger>=1.4",
     "monkeytype>=23.3.0",
+    "pandas>=2.3.3",
     "pillow>=12.0.0",
     "polars>=1.36.1",
     "prefect>=3.6.8",
@@ -21,16 +26,31 @@ dependencies = [
     "pydantic-to-pyarrow>=0.1.6",
     "pymupdf>=1.26.7",
     "rich>=14.2.0",
+    "righttyper>=0.1.0",
     "types-psutil>=7.1.3.20251211",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+"src/image_processings", 
+"src/types_utils",
+"src/types_definition",
+"src/baml_client"
+]
+
+[tool.uv]
+managed = true
+package = true # This tells uv to install the local code as a package
+
+
 
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
-project-excludes = [
-    ".venv"
-]
-
-[tool]
+project-excludes = ["**/node_modules", "**/__pycache__", ".venv", "**/.[!/.]*/**"]

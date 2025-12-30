@@ -24,3 +24,9 @@ baml_client/
 venv/
 
 uv.lock
+
+*.bak
+
+*.log
+
+*.sqlite3

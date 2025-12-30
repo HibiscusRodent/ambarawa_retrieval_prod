@@ -7,15 +7,12 @@ import base64
 import PIL.Image
 import pymupdf as fitz
 import io
-
-
-# misc libraries
-from typing import Literal, cast
-from pydantic import BaseModel, ConfigDict, Field
-
+from typing import Literal, Self, cast
 from baml_py import Image as BamlImage
+from types_definition import ProcessedBookImageData
 
-from prefect.logging import get_run_logger
+
+from logger import logger
 import psutil
 import os
 
@@ -23,62 +20,6 @@ import os
 from joblib import Parallel, delayed
 
 
-class BookFolderPathData(BaseModel):
-    """
-    Pydantic model representing the input data required for book folder processing.
-
-    This class encapsulates the filesystem path to a book folder and provides
-    utility properties to extract book metadata, such as the book ID.
-    """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    path: Path = Field(
-        ...,
-        description="The absolute or relative Path object pointing to the book folder.",
-    )
-
-    @property
-    def book_id(self) -> str:
-        """
-        Extracts and returns the book ID based on the folder name.
-
-        Returns:
-            str: The name of the directory which serves as the unique identifier for the book.
-        """
-        return self.path.name
-
-
-class ProcessedBookData(BaseModel):
-    """
-    Pydantic model representing the output data after processing a book folder.
-
-    This class holds the results of image processing, including various data formats
-    (base64 and binary) suitable for different downstream tasks like vector database
-    insertion or LLM inference.
-    """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    book_id: str = Field(
-        ..., description="The unique identifier of the book, typically the folder name."
-    )
-    base64_images: list[str] = Field(
-        ...,
-        description="A list of base64-encoded strings representing the processed images. "
-        "These are optimized for storage in columnar formats like LanceDB.",
-    )
-    binary_images: list[bytes] = Field(
-        ...,
-        description="A list of raw binary bytes representing the processed images. "
-        "These are optimized for direct usage with AI model APIs.",
-    )
-
-    baml_images: list[BamlImage] = Field(
-        default_factory=list,
-        description="A list of BAML Image objects created from the base64 images. "
-        "These are suitable for passing directly into BAML functions that accept images.",
-    )
 
 
 class ImageProcessors:
@@ -93,7 +34,7 @@ class ImageProcessors:
     """
 
     def __init__(
-        self,
+        self: Self,
         dpi: int = 150,
         max_size: tuple[int, int] = (800, 800),
         resizing_filter: Literal[
@@ -157,18 +98,16 @@ class ImageProcessors:
         return process.memory_info().rss / (1024 * 1024)
 
     @property
-    def supported_extensions(self) -> set[str]:
+    def supported_extensions(self: Self) -> set[str]:
         """Get all supported file extensions."""
         return set(self.images_extensions + self.pdf_extensions)
 
-    def get_book_files(
-        self, folder_data: BookFolderPathData
-    ) -> tuple[list[str], list[Path]]:
+    def get_book_files(self: Self, folder_path: Path) -> tuple[list[str], list[Path]]:
         """
         Get all supported files within a given directory.
 
         Args:
-            folder_data: Data object containing the path to the book directory
+            folder_path: Path object pointing to the book directory
 
         Returns:
             A tuple containing a list of file names and paths.
@@ -177,10 +116,9 @@ class ImageProcessors:
             ValueError: If the path doesn't exist, isn't a directory,
                        is empty, or contains no supported files.
         """
-        logger = get_run_logger()
-        logger.info("Getting a list of books from path: %s", str(folder_data.path))
+        logger.info("Getting a list of books from path: %s", str(folder_path))
 
-        directory = folder_data.path
+        directory = folder_path
         try:
             directory = directory.resolve(strict=True)
         except FileNotFoundError:
@@ -211,20 +149,20 @@ class ImageProcessors:
         )
         return file_names, matched_paths
 
-    def get_book_id(self, folder_data: BookFolderPathData) -> str:
+    def get_book_id(self, folder_path: Path) -> str:
         """
-        Get the book ID from a given book folder path data.
+        Get the book ID from a given book folder path.
 
         Args:
-            folder_data: Data object containing the path to the book directory
+            folder_path: Path object pointing to the book directory
 
         Returns:
             A string representing the book ID (folder name).
         """
-        return folder_data.book_id
+        return folder_path.name
 
     def determine_book_data_type(
-        self, file_names: list[str]
+        self: Self, file_names: list[str]
     ) -> Literal["pdf", "images", "others"]:
         """
         Determine the type of book data based on file extensions.
@@ -234,7 +172,6 @@ class ImageProcessors:
         Returns:
             "pdf", "images", or "others"
         """
-        logger = get_run_logger()
         logger.info("Determining book data type from %d files", len(file_names))
         extensions = {Path(f).suffix.lower() for f in file_names}
 
@@ -245,7 +182,9 @@ class ImageProcessors:
             logger.info("Detected image files with extensions: %s", extensions)
             return "images"
         else:
-            logger.warning("Detected unsupported file types with extensions: %s", extensions)
+            logger.warning(
+                "Detected unsupported file types with extensions: %s", extensions
+            )
             return "others"
 
     @staticmethod
@@ -297,7 +236,6 @@ class ImageProcessors:
                     img.thumbnail(self.max_size, resampling_method)
                     return self._encode_to_outputs(img, self.quality, self.webp_method)
         except Exception as e:
-            logger = get_run_logger()
             logger.error(
                 "Error processing source %s: %s (Exception type: %s)",
                 str(source),
@@ -306,26 +244,35 @@ class ImageProcessors:
             )
             raise
 
-    def process_book_folder(self, folder_data: BookFolderPathData) -> ProcessedBookData:
+    def process_book_folder(self: Self, folder_path: Path) -> ProcessedBookImageData:
         """
         End-to-end processing of images from a book folder using a unified pipeline.
 
         Args:
-            folder_data: Data object containing the path to the book directory
+            folder_path: Path object pointing to the book directory
 
         Returns:
-            A ProcessedBookData object containing IDs and optimized image data.
+            A dictionary containing the following fields:
+
+            - book_id (str): The unique identifier of the book, typically the folder name.
+            - base64_images (list[str]): A list of base64-encoded strings representing the
+              processed images. These are optimized for storage in columnar formats like LanceDB.
+            - binary_images (list[bytes]): A list of raw binary bytes representing the
+              processed images. These are optimized for direct usage with AI model APIs.
+            - baml_images (list[BamlImage]): A list of BAML Image objects created from the
+              base64 images. These are suitable for passing directly into BAML functions
+              that accept images.
         """
-        logger = get_run_logger()
         start_mem = self._get_memory_usage_mb()
+        book_id = folder_path.name
         logger.info(
             "Starting book folder processing - Book ID: %s, Path: %s, Start Memory: %.2f MB",
-            folder_data.book_id,
-            str(folder_data.path),
+            book_id,
+            str(folder_path),
             start_mem,
         )
-        
-        file_names, file_paths = self.get_book_files(folder_data)
+
+        file_names, file_paths = self.get_book_files(folder_path)
         data_type = self.determine_book_data_type(file_names)
 
         total_disk_size = sum(p.stat().st_size for p in file_paths)
@@ -352,11 +299,14 @@ class ImageProcessors:
         else:
             logger.warning(
                 "No processable files found for book ID: %s (Data Type: %s)",
-                folder_data.book_id,
+                book_id,
                 data_type,
             )
-            return ProcessedBookData(
-                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            return ProcessedBookImageData(
+                book_id=book_id,
+                base64_images=[],
+                binary_images=[],
+                baml_images=[],
             )
 
         after_sources_mem = self._get_memory_usage_mb()
@@ -375,11 +325,18 @@ class ImageProcessors:
         )
 
         after_parallel_mem = self._get_memory_usage_mb()
-        logger.info("Parallel processing complete - Memory: %.2f MB, Results Count: %d", after_parallel_mem, len(results))
+        logger.info(
+            "Parallel processing complete - Memory: %.2f MB, Results Count: %d",
+            after_parallel_mem,
+            len(results),
+        )
 
         if not results:
-            return ProcessedBookData(
-                book_id=folder_data.book_id, base64_images=[], binary_images=[]
+            return ProcessedBookImageData(
+                book_id=book_id,
+                base64_images=[],
+                binary_images=[],
+                baml_images=[],
             )
 
         # 3. Unzip results into separate lists
@@ -390,9 +347,7 @@ class ImageProcessors:
         for idx, base64_image in enumerate(base64_images):
             try:
                 # NOTE: our encoder uses WEBP in _encode_to_outputs
-                baml_images.append(
-                    BamlImage.from_base64("image/webp", base64_image)
-                )
+                baml_images.append(BamlImage.from_base64("image/webp", base64_image))
             except Exception as e:
                 logger.error(
                     "Error creating BAML image at index %d: %s (Exception type: %s)",
@@ -408,7 +363,7 @@ class ImageProcessors:
 
         logger.info(
             "Processing complete - Book ID: %s, Image Count: %d, Total Base64 Size: %d bytes (%.2f MB), Total Binary Size: %d bytes (%.2f MB), Final Memory: %.2f MB, Memory Delta: %.2f MB",
-            folder_data.book_id,
+            book_id,
             len(base64_images),
             total_base64_size,
             total_base64_size / (1024 * 1024),
@@ -418,8 +373,17 @@ class ImageProcessors:
             end_mem - start_mem,
         )
 
-        return ProcessedBookData(
-            book_id=folder_data.book_id,
+        # Simple validation: ensure all lists have the same length
+        if not (len(base64_images) == len(binary_images) == len(baml_images)):
+            logger.warning(
+                "Inconsistent image list lengths - base64: %d, binary: %d, baml: %d",
+                len(base64_images),
+                len(binary_images),
+                len(baml_images),
+            )
+
+        return ProcessedBookImageData(
+            book_id=book_id,
             base64_images=cast(list[str], base64_images),
             binary_images=cast(list[bytes], binary_images),
             baml_images=baml_images,
