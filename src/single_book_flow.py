@@ -5,6 +5,7 @@ from types_definition import (
     AggregatedtoLanceOutput,
     construct_aggregated_lance_output,
 )
+from types_utils import pydantic_to_arrow_schema
 from baml_client.sync_client import b
 from baml_client.types import (
     BookConditionData,
@@ -14,7 +15,7 @@ from baml_client.types import (
     BookPubAndDistDetails,
 )
 
-#--- lanceDB modules
+# --- lanceDB modules
 from lancedb import connect
 
 # ---- import modules for the prefect functionalities
@@ -25,43 +26,80 @@ from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 from rich.traceback import install
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 import shutil
 
 
-logger = get_run_logger()
+class InitializedEnvironment(NamedTuple):
+    """Container for initialized environment components."""
+
+    image_processors: ImageProcessors
+    active_lance_db: Any
+    lance_table_name: str
 
 
 @task
-def initiate_environment(uri: Path, lance_table_name: str):
+def initiate_environment(uri: Path, lance_table_name: str) -> InitializedEnvironment:
     """
     Initialize the environment for book processing.
     Loads environment variables, sets up rich traceback, initializes logger
     and ImageProcessors to ensure all dependencies are loaded.
 
-    Returns:
-        None
-    """
-    env_loader = load_dotenv()  # load dotenv variables for baml to access api key in the .env file
-    rich_traceback_printer = install()  # install rich traceback for better error logging
-    logger = get_run_logger()  # setting up logger for prefect
-    image_processors = ImageProcessors()  # initiate image processor to make sure all dependencies are loaded
+    Args:
+        uri: Path to the LanceDB database.
+        lance_table_name: Name of the LanceDB table to create or use.
 
+    Returns:
+        InitializedEnvironment: A NamedTuple containing initialized components.
+    """
+    logger = get_run_logger()
+    logger.info("========== Environment Initialization ==========")
+
+    logger.info("Loading environment variables...")
+    env_loader = load_dotenv()
+    logger.debug("Environment variables loaded: %s", env_loader)
+
+    logger.info("Installing rich traceback handler...")
+    install()
+
+    logger.info("Initializing ImageProcessors...")
+    image_processors = ImageProcessors()
+    logger.info("ImageProcessors initialized successfully")
+
+    logger.info("Connecting to LanceDB at: %s", uri)
     active_lance_db = connect(uri)
-    logger.info(f"Connected to LanceDB at: {uri}")
-    
+    logger.info("Connected to LanceDB successfully")
+
     # create a lance table
-    # throw an error to a logger if the table already exists
     try:
-        lance_table = active_lance_db.create_table(lance_table_name, schema=AggregatedtoLanceOutput)
-        logger.info(f"Created LanceDB table: {lance_table_name} with schema: {AggregatedtoLanceOutput}")
+        logger.info("Attempting to create LanceDB table: %s", lance_table_name)
+        # Convert Pydantic model to PyArrow schema
+        arrow_schema = pydantic_to_arrow_schema(AggregatedtoLanceOutput)
+        logger.debug("Generated PyArrow schema for AggregatedtoLanceOutput")
+        _ = active_lance_db.create_table(lance_table_name, schema=arrow_schema)
+        logger.info(
+            "Created LanceDB table: %s with schema: %s",
+            lance_table_name,
+            AggregatedtoLanceOutput.__name__,
+        )
     except Exception as e:
-        logger.warning(f"LanceDB table {lance_table_name} might already exist. Error: {str(e)}")
-        logger.info(f"Here's the list of available tables at {uri}: {active_lance_db.list_tables()}")
-    
-    # print info logger to make sure that necessary environment variables are loaded
-    logger.info("Environment configured, variables and lanceDB loaded.")
-    return image_processors, active_lance_db
+        logger.warning(
+            "LanceDB table %s might already exist. Error: %s", lance_table_name, str(e)
+        )
+        available_tables = active_lance_db.table_names()
+        logger.info("Available tables at %s: %s", uri, available_tables)
+        if lance_table_name not in available_tables:
+            logger.error(
+                "Table %s does not exist and creation failed", lance_table_name
+            )
+            raise
+
+    logger.info("========== Environment Initialization Complete ==========")
+    return InitializedEnvironment(
+        image_processors=image_processors,
+        active_lance_db=active_lance_db,
+        lance_table_name=lance_table_name,
+    )
 
 
 # utilities functions to save data to disk
@@ -77,10 +115,19 @@ def save_to_json(data, output_path):
         output_path: Path object representing the file path where the JSON
                      will be saved.
     """
-    with output_path.open("w", encoding="utf-8") as f:
-        f.write(data.model_dump_json(indent=4, ensure_ascii=False))
+    logger = get_run_logger()
+    logger.debug("Saving data to JSON file: %s", output_path)
+
+    try:
+        with output_path.open("w", encoding="utf-8") as f:
+            f.write(data.model_dump_json(indent=4, ensure_ascii=False))
+        logger.debug("Successfully saved JSON file: %s", output_path)
+    except Exception as e:
+        logger.exception("Failed to save JSON file: %s, Error: %s", output_path, str(e))
+        raise
 
 
+@task
 def save_binary_images_to_disk(
     image_data: ProcessedBookImageData, output_folder: Path
 ) -> None:
@@ -130,11 +177,18 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
     Returns:
         ProcessedBookImageData: A data class containing processed images and book ID.
     """
+    logger = get_run_logger()
+    logger.info("Starting image processing for folder: %s", folder_path)
+
     image_data: ProcessedBookImageData = image_processor.process_book_folder(
         Path(folder_path)
     )
-    logger.info(f"Processed book with id of: {image_data.book_id}")
-    logger.info(f"Got a total of {len(image_data.binary_images)} images")
+
+    logger.info(
+        "Processed book with ID: %s, Image Count: %d",
+        image_data.book_id,
+        len(image_data.binary_images),
+    )
     return image_data
 
 
@@ -154,6 +208,7 @@ def analyze_book_condition(
     Returns:
         BookConditionData: The analyzed book condition data.
     """
+    logger = get_run_logger()
     try:
         logger.info("Starting book condition analysis for Book ID: %s", book_id)
         data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
@@ -192,8 +247,9 @@ def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnaly
     Returns:
         RawAnalysis: The analyzed raw analysis data.
     """
+    logger = get_run_logger()
     try:
-        logger.info("Starting book condition analysis for Book ID: %s", book_id)
+        logger.info("Starting raw visual analysis for Book ID: %s", book_id)
         raw_analysis_data = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
         save_to_json(
             raw_analysis_data, output_folder / f"{book_id}_book_condition_data.json"
@@ -233,6 +289,7 @@ def analyze_content_hints(
     Returns:
         BookContentHints: The analysis result.
     """
+    logger = get_run_logger()
     try:
         logger.info("Starting content hints analysis for Book ID: %s", book_id)
         hints = b.GetBookContentHints(
@@ -277,6 +334,7 @@ def analyze_main_data(
     Returns:
         BookMainData: The analysis result.
     """
+    logger = get_run_logger()
     try:
         logger.info("Starting main data extraction for Book ID: %s", book_id)
         main_data = b.GetBookMainData(
@@ -322,6 +380,7 @@ def analyze_publisher_details(
     Returns:
         BookPubAndDistDetails: The analysis result.
     """
+    logger = get_run_logger()
     try:
         logger.info("Starting publisher details extraction for Book ID: %s", book_id)
         details: BookPubAndDistDetails = b.GetBookPublisherData(
@@ -351,6 +410,7 @@ def analyze_publisher_details(
         return BookPubAndDistDetails.model_construct()
 
 
+@task
 def prepare_data_for_ingestion(
     book_id: str,
     binary_images: list[bytes],
@@ -381,29 +441,43 @@ def prepare_data_for_ingestion(
         AggregatedtoLanceOutput: The aggregated, validated data ready for ingestion.
     """
     logger = get_run_logger()
-    logger.info("Constructing aggregated lance output for Book ID: %s", book_id)
-
-    aggregated_output = construct_aggregated_lance_output(
-        book_id=book_id,
-        binary_images=binary_images,
-        book_main=main_data,
-        book_pub=publisher_details_data,
-        book_condition=book_condition_data,
-        book_content=content_hints_data,
-        raw_analysis=raw_analysis_data,
+    logger.info("Starting data aggregation for Book ID: %s", book_id)
+    logger.debug(
+        "Processing %d binary images for Book ID: %s", len(binary_images), book_id
     )
 
-    logger.info(
-        "Successfully constructed aggregated output - Book ID: %s, Title: %s",
-        book_id,
-        aggregated_output.book_title.title_in_latin_script,
-    )
+    try:
+        aggregated_output = construct_aggregated_lance_output(
+            book_id=book_id,
+            binary_images=binary_images,
+            book_main=main_data,
+            book_pub=publisher_details_data,
+            book_condition=book_condition_data,
+            book_content=content_hints_data,
+            raw_analysis=raw_analysis_data,
+        )
 
-    return aggregated_output
+        logger.info(
+            "Successfully constructed aggregated output - Book ID: %s, Title: %s",
+            book_id,
+            aggregated_output.book_title.title_in_latin_script,
+        )
+        return aggregated_output
+    except Exception as e:
+        logger.exception(
+            "Failed to construct aggregated output - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )
+        raise
+
 
 # lanceDB ingestion phases
 @task
-def ingest_to_lance_db(active_lance_db, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput):
+def ingest_to_lance_db(
+    active_lance_db, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput
+):
     """
     Ingest data into LanceDB. It takes in the constructed aggregated output data and
     writes it into the specified LanceDB table. The table has to be pre-created with the
@@ -418,52 +492,120 @@ def ingest_to_lance_db(active_lance_db, table_name: str, tobe_ingested_data: Agg
     Returns:
         Any: The table object.
     """
-    logger.info("Ingesting data into LanceDB table: %s", table_name)
-    
-    # open a table from the active lance database
-    lance_table = active_lance_db.get_table(table_name)
+    logger = get_run_logger()
+    logger.info(
+        "Starting LanceDB ingestion - Table: %s, Book ID: %s",
+        table_name,
+        tobe_ingested_data.book_id,
+    )
+
+    try:
+        # open a table from the active lance database
+        lance_table = active_lance_db.open_table(table_name)
+        logger.debug("Successfully opened LanceDB table: %s", table_name)
+
+        # Add the data to the table
+        lance_table.add([tobe_ingested_data.model_dump()])
+        logger.info(
+            "Successfully ingested data - Book ID: %s, Table: %s",
+            tobe_ingested_data.book_id,
+            table_name,
+        )
+        return lance_table
+    except Exception as e:
+        logger.exception(
+            "Failed to ingest data - Book ID: %s, Table: %s, Error: %s (Exception type: %s)",
+            tobe_ingested_data.book_id,
+            table_name,
+            str(e),
+            type(e).__name__,
+        )
+        raise
+
 
 # run the environment setup phase only once in the place where the flow is being called
-def setup_phase_flow(uri: Path, lance_table_name: str):
-    # the environment setup phase should happen only once in the entire pararllel flow run
-    initiated_environment = initiate_environment(uri, lance_table_name)  # intiate environment
+@flow
+def setup_phase_flow(uri: Path, lance_table_name: str) -> InitializedEnvironment:
+    """
+    Initialize the environment setup phase for the book processing pipeline.
+    This should only be called once per pipeline run.
+
+    Args:
+        uri: Path to the LanceDB database.
+        lance_table_name: Name of the LanceDB table to create or use.
+
+    Returns:
+        InitializedEnvironment: Initialized environment with all necessary components.
+    """
+    logger = get_run_logger()
+    logger.info("Starting environment setup phase flow")
+
+    initiated_environment = initiate_environment(uri, lance_table_name)
+
+    logger.info("Environment setup phase completed successfully")
     return initiated_environment
 
 
 # the flow that encapsulates all process within the book processing data
 @flow
-def single_book_flow(initiated_environment, input_book_folder_path: str, output_folder_path: str) -> None:
-    
-    book_folder = Path(input_book_folder_path)  # taking in a book folder path and validating it
+def single_book_flow(
+    initiated_environment, input_book_folder_path: str, output_folder_path: str
+) -> None:
+    """Main flow to process a single book folder through the entire analysis pipeline.
+
+    Args:
+        initiated_environment: Initialized environment containing image processors and LanceDB connection.
+        input_book_folder_path: Path to the folder containing book images.
+        output_folder_path: Path where output data will be saved.
+    """
+    logger = get_run_logger()
+    logger.info("========== Starting Single Book Flow ==========")
+    logger.info("Input folder: %s", input_book_folder_path)
+    logger.info("Output folder: %s", output_folder_path)
+
+    book_folder = Path(input_book_folder_path)
     output_book_folder = Path(output_folder_path) / book_folder.name
-    environment = initiated_environment  # ensuring that the environment is initiated before proceeding further
+    environment = initiated_environment
 
-    # begin image processing
-    image_data = process_image_folder(
-        environment.image_processors, str(book_folder)
-    )  # process the book folder to get images data
-    save_binary_images_to_disk(
-        image_data, output_book_folder
-    )  # save the binary images to disk
+    logger.info("Creating output directory: %s", output_book_folder)
+    output_book_folder.mkdir(parents=True, exist_ok=True)
 
-    # main BAML inference phase
-    baml_images = (
-        image_data.baml_images
-    )  # extract baml images from the processed image data
-    book_id = image_data.book_id  # extract book id from the processed image
+    # Phase 1: Image Processing
+    logger.info("========== Phase 1: Image Processing ==========")
+    image_data = process_image_folder(environment.image_processors, str(book_folder))
+    save_binary_images_to_disk(image_data, output_book_folder)
 
-    # first phase of the inference, the two runs in parallel
-    book_condition_data = analyze_book_condition(baml_images, book_id, output_book_folder)
-    
-    raw_analysis_data_json = run_raw_analysis(baml_images, book_id, output_book_folder).model_dump_json()
+    # Extract common variables
+    baml_images = image_data.baml_images
+    book_id = image_data.book_id
+    logger.info("Processing Book ID: %s", book_id)
 
-    # second phase of the inference, dependent on the raw analysis result
-    # the three analysis runs in parallel
-    contetent_hints_data = analyze_content_hints(baml_images, book_id, raw_analysis_data_json, output_book_folder)
-    main_data = analyze_main_data(baml_images, book_id, raw_analysis_data_json, output_book_folder)
-    publisher_details_data = analyze_publisher_details(baml_images, book_id, raw_analysis_data_json, output_book_folder)
-    
-    # construct aggregated data for ingestion
+    # Phase 2: First BAML Inference (parallel-capable tasks)
+    logger.info("========== Phase 2: First BAML Inference ==========")
+    logger.info("Running book condition and raw analysis in parallel")
+    book_condition_data = analyze_book_condition(
+        baml_images, book_id, output_book_folder
+    )
+
+    raw_analysis_data_json = run_raw_analysis(
+        baml_images, book_id, output_book_folder
+    ).model_dump_json()
+
+    # Phase 3: Second BAML Inference (dependent on raw analysis)
+    logger.info("========== Phase 3: Second BAML Inference ==========")
+    logger.info("Running content hints, main data, and publisher details analysis")
+    contetent_hints_data = analyze_content_hints(
+        baml_images, book_id, raw_analysis_data_json, output_book_folder
+    )
+    main_data = analyze_main_data(
+        baml_images, book_id, raw_analysis_data_json, output_book_folder
+    )
+    publisher_details_data = analyze_publisher_details(
+        baml_images, book_id, raw_analysis_data_json, output_book_folder
+    )
+
+    # Phase 4: Data Aggregation
+    logger.info("========== Phase 4: Data Aggregation ==========")
     aggregated_output = prepare_data_for_ingestion(
         book_id=book_id,
         binary_images=image_data.binary_images,
@@ -473,21 +615,50 @@ def single_book_flow(initiated_environment, input_book_folder_path: str, output_
         main_data=main_data,
         publisher_details_data=publisher_details_data,
     )
-    
-    # ingest the constructed data into lanceDB
-    ingest_to_lance_db(environment.active_lance_db, environment.lance_table_name, aggregated_output)
+
+    # Phase 5: LanceDB Ingestion
+    logger.info("========== Phase 5: LanceDB Ingestion ==========")
+    ingest_to_lance_db(
+        environment.active_lance_db, environment.lance_table_name, aggregated_output
+    )
+
+    logger.info("========== Single Book Flow Completed Successfully ==========")
+    logger.info(
+        "Book ID: %s processed and ingested into table: %s",
+        book_id,
+        environment.lance_table_name,
+    )
     return None
+
 
 @flow
 def example_run():
+    """Example flow demonstrating single book processing."""
+    logger = get_run_logger()
+    logger.info("========== Starting Example Run ==========")
+
     lance_db_path = Path("data/lance_db_test")
     lance_table_name = "books_test_table"
-    input_book_folder_path = Path("D:/projects/ambarawa_retrieval_prod/sample_data/rak-0003_baris-005_buku-30")
-    
+    input_book_folder_path = Path(
+        "D:/projects/ambarawa_retrieval_prod/sample_data/rak-0003_baris-005_buku-30"
+    )
+
+    logger.info("Configuration:")
+    logger.info("  - LanceDB Path: %s", lance_db_path)
+    logger.info("  - Table Name: %s", lance_table_name)
+    logger.info("  - Input Book: %s", input_book_folder_path)
+
+    logger.info("Initializing environment...")
     setup_phase_flow_instance = setup_phase_flow(lance_db_path, lance_table_name)
-    single_book_flow(setup_phase_flow_instance, str(input_book_folder_path), "data/output")
-    
+
+    logger.info("Starting single book processing...")
+    single_book_flow(
+        setup_phase_flow_instance, str(input_book_folder_path), "data/output"
+    )
+
+    logger.info("========== Example Run Completed Successfully ==========")
     return None
+
 
 if __name__ == "__main__":
     example_run()
