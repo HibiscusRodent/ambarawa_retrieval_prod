@@ -55,7 +55,9 @@ def process_directory(
 
 
 @flow(task_runner=ThreadPoolTaskRunner(max_workers=8))
-def finding_book_folder(input_folder: str) -> pl.DataFrame:
+def finding_book_folder(
+    input_folder: str, output_parquet_path: str | None = None
+) -> pl.DataFrame:
     """
     Scour through subfolders to find folders that contain images and/or PDF files.
 
@@ -71,6 +73,10 @@ def finding_book_folder(input_folder: str) -> pl.DataFrame:
     Args:
         input_folder (str): Path to the root folder to scan. All subdirectories
             will be recursively searched for image and PDF files.
+        output_parquet_path (str | None): Optional path to save the resulting
+            DataFrame as a Parquet file. If None (default), the DataFrame is
+            not saved to disk. Parent directories will be created if they
+            don't exist.
 
     Returns:
         pl.DataFrame: A Polars DataFrame with the following columns:
@@ -176,6 +182,13 @@ def finding_book_folder(input_folder: str) -> pl.DataFrame:
     print(f"\nDataFrame created with {len(df)} rows")
     print(df.head())
 
+    # Save to parquet if output path is provided
+    if output_parquet_path is not None:
+        output_path = Path(output_parquet_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(output_path)
+        print(f"\nDataFrame saved to: {output_path.absolute()}")
+
     return df
 
 
@@ -191,8 +204,9 @@ def main() -> pl.DataFrame:
             paths to directories with image/PDF files and their contents.
     """
     # You can add test code here or modify as needed
-    test_folder = "."  # Current directory for testing
-    result_df = finding_book_folder(test_folder)
+    test_folder = ""  # Current directory for testing
+    output_path = "data/book_folder_list.parquet"
+    result_df = finding_book_folder(test_folder, output_parquet_path=output_path)
     return result_df
 
 
