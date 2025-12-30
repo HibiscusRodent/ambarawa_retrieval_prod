@@ -309,13 +309,35 @@ def analyze_publisher_details(baml_images: Any, book_id: str, raw_visual_json: s
         )
         return BookPubAndDistDetails.model_construct()
 
-# run the environment setup phase only once in the place where the flow is being called        
-def setup_phase_flow():
-    # the environment setup phase should happen only once in the entire pararllel flow run
-    initiated_environment = initiate_environment() # intiate environment
-    return initiated_environment
+def prepare_data_for_ingestion(
+    book_id: str,
+    binary_images: list[bytes],
+    book_condition_data: BookConditionData,
+    raw_analysis_data: RawAnalysis,
+    content_hints_data: BookContentHints,
+    main_data: BookMainData,
+    publisher_details_data: BookPubAndDistDetails,
+):
+    """
+    Prepare and aggregate data for ingestion into the Lance format.
+    This function is a placeholder and should be implemented to aggregate
+    the various analysis results into a single structure suitable for
+    ingestion.
     
+    Arguments:
+        book_id: The ID of the book.
+        binary_images: List of binary images of the book.
+        book_condition_data: Analyzed book condition data.
+        raw_analysis_data: Analyzed raw visual analysis data.
+        content_hints_data: Analyzed content hints data.
+        main_data: Analyzed main book data.
+        publisher_details_data: Analyzed publisher and distributor details data.
+
+    Returns:
+        AggregatedtoLanceOutput: The aggregated data ready for ingestion.
+    """
     
+    return None
 
 # run the environment setup phase only once in the place where the flow is being called        
 def setup_phase_flow():
@@ -348,6 +370,4 @@ def single_book_flow(initiated_environment, input_book_folder_path: str, output_
     analyze_content_hints(baml_images, book_id, raw_analysis_data_json, output_book_folder)
     analyze_main_data(baml_images, book_id, raw_analysis_data_json, output_book_folder)
     analyze_publisher_details(baml_images, book_id, raw_analysis_data_json, output_book_folder)
-    
-    
     return None
