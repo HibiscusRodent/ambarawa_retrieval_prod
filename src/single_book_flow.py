@@ -1,5 +1,4 @@
 # ---- importing modules ----
-from email.mime import image
 from image_processings import ImageProcessors
 from types_definition import (
     ProcessedBookImageData,

@@ -38,7 +38,7 @@ packages = [
 "src/image_processings", 
 "src/types_utils",
 "src/types_definition",
-"baml_client"
+"src/baml_client"
 ]
 
 [tool.uv]
