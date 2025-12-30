@@ -52,14 +52,13 @@ def initiate_environment(uri: Path, lance_table_name: str):
     logger.info(f"Connected to LanceDB at: {uri}")
     
     # create a lance table
-    lance_table = active_lance_db.create_table(lance_table_name, schema=AggregatedtoLanceOutput)
-    logger.info(f"Created LanceDB table: {lance_table_name} with schema: {AggregatedtoLanceOutput}")
-    
-    # TODO in the case where the table already exists, stop the initiation, and
-    # raise an error, that prompt users to change the name of the table, to
-    # avoud overwriting existing data
-    
-    
+    # throw an error to a logger if the table already exists
+    try:
+        lance_table = active_lance_db.create_table(lance_table_name, schema=AggregatedtoLanceOutput)
+        logger.info(f"Created LanceDB table: {lance_table_name} with schema: {AggregatedtoLanceOutput}")
+    except Exception as e:
+        logger.warning(f"LanceDB table {lance_table_name} might already exist. Error: {str(e)}")
+        logger.info(f"Here's the list of available tables at {uri}: {active_lance_db.list_tables()}")
     
     # print info logger to make sure that necessary environment variables are loaded
     logger.info("Environment configured, variables and lanceDB loaded.")
@@ -426,9 +425,9 @@ def ingest_to_lance_db(active_lance_db,, table_name: str, tobe_ingested_data: Ag
     lance_table = active_lance_db.get_table(table_name)
 
 # run the environment setup phase only once in the place where the flow is being called
-def setup_phase_flow(uri: Path):
+def setup_phase_flow(uri: Path, lance_table_name: str):
     # the environment setup phase should happen only once in the entire pararllel flow run
-    initiated_environment = initiate_environment(uri)  # intiate environment
+    initiated_environment = initiate_environment(uri, lance_table_name)  # intiate environment
     return initiated_environment
 
 
