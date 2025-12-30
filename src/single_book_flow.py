@@ -14,6 +14,7 @@ from baml_client.types import (
     BookMainData,
     BookPubAndDistDetails,
 )
+from baml_py import Image as BamlImage
 
 # --- lanceDB modules
 from lancedb import connect
@@ -24,7 +25,7 @@ from prefect import flow, task
 from prefect.logging import get_run_logger
 from prefect.cache_policies import NO_CACHE
 from prefect.futures import PrefectFuture
-from prefect_dask.task_runners import DaskTaskRunner
+from prefect.task_runners import ThreadPoolTaskRunner
 
 # ---- misc modules
 from dotenv import load_dotenv
@@ -32,6 +33,23 @@ from rich.traceback import install
 from pathlib import Path
 from typing import Any, NamedTuple
 import shutil
+
+
+def base64_to_baml_images(base64_images: list[str]) -> list[BamlImage]:
+    """
+    Convert a list of base64-encoded image strings to BAML Image objects.
+
+    This helper function recreates BamlImage objects from serializable base64 strings,
+    which is necessary when using DaskTaskRunner since BamlImage objects contain
+    unpicklable Connection objects.
+
+    Args:
+        base64_images: List of base64-encoded image strings in WebP format.
+
+    Returns:
+        list[BamlImage]: List of BAML Image objects suitable for BAML functions.
+    """
+    return [BamlImage.from_base64("image/webp", img) for img in base64_images]
 
 
 class InitializedEnvironment(NamedTuple):
@@ -199,13 +217,16 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
 # baml inference tasks
 @task
 def analyze_book_condition(
-    baml_images, book_id: str, output_folder: Path
+    base64_images: list[str], book_id: str, output_folder: Path
 ) -> BookConditionData:
     """
     Analyze the book condition using BAML client and return the BookConditionData.
 
+    This task accepts base64-encoded images instead of BamlImage objects to ensure
+    serializability when using DaskTaskRunner for parallel execution.
+
     Args:
-        baml_images: List of BAML-compatible images for analysis.
+        base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book being analyzed.
         output_folder: Path to the folder where output data will be saved.
 
@@ -215,6 +236,7 @@ def analyze_book_condition(
     logger = get_run_logger()
     try:
         logger.info("Starting book condition analysis for Book ID: %s", book_id)
+        baml_images = base64_to_baml_images(base64_images)
         data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
         save_to_json(data, output_folder / f"{book_id}_book_condition_data.json")
 
@@ -236,15 +258,20 @@ def analyze_book_condition(
 
 
 @task
-def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnalysis:
+def run_raw_analysis(
+    base64_images: list[str], book_id: str, output_folder: Path
+) -> RawAnalysis:
     """
     Infer the visual raw analysis of the book using BAML client and return the RawAnalysis.
     The results of the analysis will be used in further processing steps as a way to enrich the book data.
     The resulting outoput will also be saved to disk as a JSON file for future reference,
     and into the main dataframe aggregation down the line.
 
+    This task accepts base64-encoded images instead of BamlImage objects to ensure
+    serializability when using DaskTaskRunner for parallel execution.
+
     Args:
-        baml_images: List of BAML-compatible images for analysis.
+        base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book being analyzed.
         output_folder: Path to the folder where output data will be saved.
 
@@ -254,6 +281,7 @@ def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnaly
     logger = get_run_logger()
     try:
         logger.info("Starting raw visual analysis for Book ID: %s", book_id)
+        baml_images = base64_to_baml_images(base64_images)
         raw_analysis_data = b.GetBookrawVisual(MultiImages=baml_images, bookId=book_id)
         save_to_json(
             raw_analysis_data, output_folder / f"{book_id}_book_condition_data.json"
@@ -278,16 +306,22 @@ def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnaly
 
 @task
 def analyze_content_hints(
-    baml_images: Any, book_id: str, raw_visual_data_json: str, output_folder: Path
+    base64_images: list[str],
+    book_id: str,
+    raw_visual_data_json: str,
+    output_folder: Path,
 ) -> BookContentHints:
     """
     Generate content hints using BAML and save the result. It takes in
     a raw visual analysis data in string format to enrich the content hints generation.
 
+    This task accepts base64-encoded images instead of BamlImage objects to ensure
+    serializability when using DaskTaskRunner for parallel execution.
+
     Args:
-        baml_images: The BAML-formatted images.
+        base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
-        raw_visual_visual_data: data from the raw visual analysis.
+        raw_visual_data_json: data from the raw visual analysis.
         output_folder: The folder to save the JSON result.
 
     Returns:
@@ -296,6 +330,7 @@ def analyze_content_hints(
     logger = get_run_logger()
     try:
         logger.info("Starting content hints analysis for Book ID: %s", book_id)
+        baml_images = base64_to_baml_images(base64_images)
         hints = b.GetBookContentHints(
             MultiImages=baml_images,
             bookId=book_id,
@@ -323,14 +358,17 @@ def analyze_content_hints(
 
 @task
 def analyze_main_data(
-    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
+    base64_images: list[str], book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookMainData:
     """
     Extract main book data using BAML and save the result. It takes in also a
     raw visual analysis data in string format to enrich the main data extraction.
 
+    This task accepts base64-encoded images instead of BamlImage objects to ensure
+    serializability when using DaskTaskRunner for parallel execution.
+
     Args:
-        baml_images: The BAML-formatted images.
+        base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
         raw_visual_json: simple string representation of RawAnalysis.
         output_folder: The folder to save the JSON result.
@@ -341,6 +379,7 @@ def analyze_main_data(
     logger = get_run_logger()
     try:
         logger.info("Starting main data extraction for Book ID: %s", book_id)
+        baml_images = base64_to_baml_images(base64_images)
         main_data = b.GetBookMainData(
             MultiImages=baml_images,
             bookId=book_id,
@@ -369,14 +408,17 @@ def analyze_main_data(
 
 @task
 def analyze_publisher_details(
-    baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path
+    base64_images: list[str], book_id: str, raw_visual_json: str, output_folder: Path
 ) -> BookPubAndDistDetails:
     """
     Extract publisher and distributor details using BAML and save the result.
-    Takes in halso a raw visual analysis data in string format to enrich the extraction.
+    Takes in also a raw visual analysis data in string format to enrich the extraction.
+
+    This task accepts base64-encoded images instead of BamlImage objects to ensure
+    serializability when using DaskTaskRunner for parallel execution.
 
     Args:
-        baml_images: The BAML-formatted images.
+        base64_images: List of base64-encoded image strings for analysis.
         book_id: The ID of the book.
         raw_visual_json: simple string representation of RawAnalysis.
         output_folder: The folder to save the JSON result.
@@ -387,6 +429,7 @@ def analyze_publisher_details(
     logger = get_run_logger()
     try:
         logger.info("Starting publisher details extraction for Book ID: %s", book_id)
+        baml_images = base64_to_baml_images(base64_images)
         details: BookPubAndDistDetails = b.GetBookPublisherData(
             MultiImages=baml_images,
             bookId=book_id,
@@ -564,13 +607,16 @@ def setup_phase_flow(uri: Path, lance_table_name: str) -> InitializedEnvironment
 
 
 # the flow that encapsulates all process within the book processing data
-@flow(task_runner=DaskTaskRunner(cluster_kwargs={"processes": False}))  # type: ignore[call-overload]
+@flow(task_runner=ThreadPoolTaskRunner(max_workers=5))
 def single_book_flow(
     initiated_environment, input_book_folder_path: str, output_folder_path: str
 ) -> None:
     """Main flow to process a single book folder through the entire analysis pipeline.
 
-    This flow uses DaskTaskRunner to execute BAML inference tasks in parallel where possible.
+    This flow uses ThreadPoolTaskRunner to execute BAML inference tasks in parallel where possible.
+    ThreadPoolTaskRunner is preferred over DaskTaskRunner for I/O-bound tasks like BAML API calls
+    because it doesn't require pickling of function references.
+
     The parallelization strategy is:
     - Phase 1: book_condition and raw_analysis run in parallel (no dependencies)
     - Phase 2: content_hints, main_data, and pub_details run in parallel
@@ -598,8 +644,8 @@ def single_book_flow(
     image_data = process_image_folder(environment.image_processors, str(book_folder))
     save_binary_images_to_disk(image_data, output_book_folder)
 
-    # Extract common variables
-    baml_images = image_data.baml_images
+    # Extract common variables - use base64_images for serializable data
+    base64_images = image_data.base64_images
     book_id = image_data.book_id
     logger.info("Processing Book ID: %s", book_id)
 
@@ -609,10 +655,10 @@ def single_book_flow(
 
     # Submit both tasks in parallel using futures
     book_condition_future: PrefectFuture[BookConditionData] = (
-        analyze_book_condition.submit(baml_images, book_id, output_book_folder)
+        analyze_book_condition.submit(base64_images, book_id, output_book_folder)
     )
     raw_analysis_future: PrefectFuture[RawAnalysis] = run_raw_analysis.submit(
-        baml_images, book_id, output_book_folder
+        base64_images, book_id, output_book_folder
     )
 
     # Wait for raw_analysis to complete first as it's needed for Phase 3
@@ -629,15 +675,15 @@ def single_book_flow(
     # Submit all three tasks in parallel using futures
     content_hints_future: PrefectFuture[BookContentHints] = (
         analyze_content_hints.submit(
-            baml_images, book_id, raw_analysis_data_json, output_book_folder
+            base64_images, book_id, raw_analysis_data_json, output_book_folder
         )
     )
     main_data_future: PrefectFuture[BookMainData] = analyze_main_data.submit(
-        baml_images, book_id, raw_analysis_data_json, output_book_folder
+        base64_images, book_id, raw_analysis_data_json, output_book_folder
     )
     publisher_details_future: PrefectFuture[BookPubAndDistDetails] = (
         analyze_publisher_details.submit(
-            baml_images, book_id, raw_analysis_data_json, output_book_folder
+            base64_images, book_id, raw_analysis_data_json, output_book_folder
         )
     )
 
