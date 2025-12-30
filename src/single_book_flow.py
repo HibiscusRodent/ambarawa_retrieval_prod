@@ -619,7 +619,7 @@ def single_book_flow(
     logger.info("========== Phase 5: LanceDB Ingestion ==========")
     ingest_to_lance_db(
         environment.active_lance_db, environment.lance_table_name, aggregated_output
-    )
+    ) # pyright: ignore[reportUnusedCoroutine]
 
     logger.info("========== Single Book Flow Completed Successfully ==========")
     logger.info(
