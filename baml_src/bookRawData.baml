@@ -2,10 +2,10 @@ class RawAnalysis {
     coverPageDescription string @description(#"
         A complete list of all readable text and  detailed visual analysis of the cover page of the book from the given set of the images, including texts that are present on the cover page, including but not limited to the book's title, author(s), publisher, edition, and any other relevant information that can be found on the cover page.
     "#)
-    backCoverDescription string @description(#"
+    backCoverDescription string? @description(#"
         A complete list of all readable text and detailed visual analysis of the back cover page of the book from the given set of the images, including texts that are present on the back cover page, including but not limited to the book's summary, author biography, publisher information, ISBN number and any other relevant information that can be found on the back cover page.
     "#)
-    colophonPageDescription string @description(#"
+    colophonPageDescription string? @description(#"
         A complete list of all readable text and detailed visual analysis of the colophon page of the book from the given set of the images, including texts that are present on the colophon page, including but not limited to the book's publication details, printing history, edition information, and any other relevant information that can be found on the colophon page.
     "#)
     otherPageDescriptions string? @description(#"
