@@ -20,6 +20,7 @@ from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 from rich.traceback import install
 from pathlib import Path
+from typing import Any
 
 logger = get_run_logger()
 
@@ -147,19 +148,6 @@ def analyze_book_condition(baml_images, book_id: str, output_folder: Path) -> Bo
 
 @task
 def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnalysis:
-    Performs raw visual analysis on a book using BAML images and returns a RawAnalysis object.
-    This function uses the BAML client to analyze the provided images for the given book ID,
-    extracting details such as cover and back cover descriptions. The analysis results are
-    saved as a JSON file in the specified output folder for future reference and further
-    processing. On success, it logs the analysis outcome; on failure, it logs the error
-    and returns a default-constructed RawAnalysis object.
-        baml_images: A list of BAML-compatible images to be analyzed.
-        book_id (str): The unique identifier of the book being analyzed.
-        output_folder (Path): The directory path where the JSON output file will be saved.
-        RawAnalysis: The resulting analysis data. If an error occurs, a default
-        RawAnalysis instance is returned using model_construct().
-    Raises:
-        Logs exceptions internally but does not raise them; instead, returns a default object.
     """
     Infer the visual raw analysis of the book using BAML client and return the RawAnalysis.
     The results of the analysis will be used in further processing steps as a way to enrich the book data.
@@ -194,7 +182,99 @@ def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnaly
             type(e).__name__,
         )    
     return RawAnalysis.model_construct()
-    
+
+@task
+def analyze_content_hints(baml_images: Any, book_id: str, raw_visual_data_json: str, output_folder: Path) -> BookContentHints:
+    """
+    Generate content hints using BAML and save the result. It takes in
+    a raw visual analysis data in string format to enrich the content hints generation.
+
+    Args:
+        baml_images: The BAML-formatted images.
+        book_id: The ID of the book.
+        raw_visual_visual_data: data from the raw visual analysis.
+        output_folder: The folder to save the JSON result.
+
+    Returns:
+        BookContentHints: The analysis result.
+    """
+    try:
+        logger.info("Starting content hints analysis for Book ID: %s", book_id)
+        hints = b.GetBookContentHints(
+            MultiImages = baml_images,
+            bookId = book_id,
+            RawVisualNote = raw_visual_data_json,
+        )
+        save_to_json(hints, output_folder / f"{book_id}_book_content_hints.json")
+
+        logger.info(
+            "Analyzed content hints - Book ID: %s, Is Fiction: %s, Genre Count: %d, NER Count: %d",
+            book_id,
+            hints.isFiction,
+            len(hints.bookGenre) if hints.bookGenre else 0,
+            len(hints.bookNERData) if hints.bookNERData else 0,
+        )
+        return hints
+    except Exception as e:
+        logger.exception(
+            "Failed to analyze content hints - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )
+        return BookContentHints.model_construct()
+
+@task
+def analyze_main_data(baml_images: Any, book_id: str, raw_visual_json: str, output_folder: Path) -> BookMainData:
+    """
+    Extract main book data using BAML and save the result. It takes in also a
+    raw visual analysis data in string format to enrich the main data extraction.
+
+    Args:
+        baml_images: The BAML-formatted images.
+        book_id: The ID of the book.
+        raw_visual_json: simple string representation of RawAnalysis.
+        output_folder: The folder to save the JSON result.
+
+    Returns:
+        BookMainData: The analysis result.
+    """
+    logger = get_run_logger()
+    try:
+        logger.info("Starting main data extraction for Book ID: %s", book_id)
+        main_data = b.GetBookMainData(
+            MultiImages = baml_images,
+            bookId = book_id,
+            RawVisualNote = raw_visual_json,
+        )
+        save_to_json(main_data, output_folder / f"{book_id}_book_main_data.json")
+
+        logger.info(
+            "Analyzed main book data - Book ID: %s, Title: %s, ISBN-10: %s, ISBN-13: %s, Author Count: %d",
+            book_id,
+            main_data.title,
+            main_data.isbn_10,
+            main_data.isbn_13,
+            len(main_data.authors) if main_data.authors else 0,
+        )
+        return main_data
+    except Exception as e:
+        logger.exception(
+            "Failed to analyze main book data - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )
+        return BookMainData.model_construct(
+            title=None,
+            isbn_10=None,
+            isbn_13=None,
+            published_year=None,
+            language=[],
+            script=[],
+            authors=[],
+            translator=[],
+        )
 
 # run the environment setup phase only once in the place where the flow is being called        
 def setup_phase_flow():
@@ -226,7 +306,11 @@ def single_book_flow(initiated_environment, input_book_folder_path: str, output_
     baml_images = image_data.baml_images  # extract baml images from the processed image data
     book_id = image_data.book_id  # extract book id from the processed image
     
+    # first phase of the inference, the two runs in parallel    
     analyze_book_condition(baml_images, book_id, output_book_folder)
+    raw_analysis_data_json = run_raw_analysis(baml_images, book_id, output_book_folder).model_dump_json()
     
+    # second phase of the inference, dependent on the raw analysis result
+    analyze_content_hints(baml_images, book_id, raw_analysis_data_json, output_book_folder)
     
     return None
