@@ -34,7 +34,7 @@ logger = get_run_logger()
 
 
 @task
-def initiate_environment(uri: Path):
+def initiate_environment(uri: Path, lance_table_name: str):
     """
     Initialize the environment for book processing.
     Loads environment variables, sets up rich traceback, initializes logger
@@ -50,6 +50,16 @@ def initiate_environment(uri: Path):
 
     active_lance_db = connect(uri)
     logger.info(f"Connected to LanceDB at: {uri}")
+    
+    # create a lance table
+    lance_table = active_lance_db.create_table(lance_table_name, schema=AggregatedtoLanceOutput)
+    logger.info(f"Created LanceDB table: {lance_table_name} with schema: {AggregatedtoLanceOutput}")
+    
+    # TODO in the case where the table already exists, stop the initiation, and
+    # raise an error, that prompt users to change the name of the table, to
+    # avoud overwriting existing data
+    
+    
     
     # print info logger to make sure that necessary environment variables are loaded
     logger.info("Environment configured, variables and lanceDB loaded.")
@@ -394,7 +404,26 @@ def prepare_data_for_ingestion(
     return aggregated_output
 
 # lanceDB ingestion phases
+@task
+def ingest_to_lance_db(active_lance_db,, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput):
+    """
+    Ingest data into LanceDB. It takes in the constructed aggregated output data and
+    writes it into the specified LanceDB table. The table has to be pre-created with the
+    appropriate schema that matches the AggregatedtoLanceOutput structure.
 
+    Args:
+        active_lance_db: The LanceDB connection.
+        table_name: The name of the table.
+        tobe_ingested_data: The data to ingest.
+        mode: The write mode ('overwrite', 'append', etc.).
+
+    Returns:
+        Any: The table object.
+    """
+    logger.info("Ingesting data into LanceDB table: %s", table_name)
+    
+    # open a table from the active lance database
+    lance_table = active_lance_db.get_table(table_name)
 
 # run the environment setup phase only once in the place where the flow is being called
 def setup_phase_flow(uri: Path):
