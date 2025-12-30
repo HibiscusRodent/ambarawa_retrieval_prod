@@ -145,7 +145,7 @@ class BookPubAndDistDetails {
 }
 
 function GetBookPublisherData(MultiImages: image[], bookId: string, RawVisualNote: string) -> BookPubAndDistDetails {
-    client "Gemini20FlashLite"
+    client "FreeLLMWithFallback"
     prompt #"
         You are an expert librarian and publishing industry specialist with deep knowledge of book production, distribution, and colophon conventions across different countries and languages. Your role in this national library cataloguing project is to extract precise publisher and distributor information from book photographs.
 
