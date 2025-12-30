@@ -1,6 +1,5 @@
 # ---- importing modules ----
-
-import shutil
+from email.mime import image
 from image_processings import ImageProcessors
 from types_definition import (
     ProcessedBookImageData,
@@ -16,6 +15,9 @@ from baml_client.types import (
     BookPubAndDistDetails,
 )
 
+#--- lanceDB modules
+from lancedb import connect
+
 # ---- import modules for the prefect functionalities
 from prefect import flow, task
 from prefect.logging import get_run_logger
@@ -25,12 +27,14 @@ from dotenv import load_dotenv
 from rich.traceback import install
 from pathlib import Path
 from typing import Any
+import shutil
+
 
 logger = get_run_logger()
 
 
 @task
-def initiate_environment():
+def initiate_environment(uri: Path):
     """
     Initialize the environment for book processing.
     Loads environment variables, sets up rich traceback, initializes logger
@@ -39,14 +43,17 @@ def initiate_environment():
     Returns:
         None
     """
-    load_dotenv()  # load dotenv variables for baml to access api key in the .env file
-    install()  # install rich traceback for better error logging
+    env_loader = load_dotenv()  # load dotenv variables for baml to access api key in the .env file
+    rich_traceback_printer = install()  # install rich traceback for better error logging
     logger = get_run_logger()  # setting up logger for prefect
-    ImageProcessors()  # initiate image processor to make sure all dependencies are loaded
+    image_processors = ImageProcessors()  # initiate image processor to make sure all dependencies are loaded
 
+    active_lance_db = connect(uri)
+    logger.info(f"Connected to LanceDB at: {uri}")
+    
     # print info logger to make sure that necessary environment variables are loaded
-    logger.info("Environment configured and variables loaded.")
-    return None
+    logger.info("Environment configured, variables and lanceDB loaded.")
+    return image_processors, active_lance_db
 
 
 # utilities functions to save data to disk
@@ -386,11 +393,13 @@ def prepare_data_for_ingestion(
 
     return aggregated_output
 
+# lanceDB ingestion phases
+
 
 # run the environment setup phase only once in the place where the flow is being called
-def setup_phase_flow():
+def setup_phase_flow(uri: Path):
     # the environment setup phase should happen only once in the entire pararllel flow run
-    initiated_environment = initiate_environment()  # intiate environment
+    initiated_environment = initiate_environment(uri)  # intiate environment
     return initiated_environment
 
 
@@ -440,6 +449,7 @@ def single_book_flow(
         main_data=main_data,
         publisher_details_data=publisher_details_data,
     )
+    
     
     
     return None
