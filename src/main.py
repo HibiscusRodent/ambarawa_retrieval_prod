@@ -4,10 +4,13 @@ from prefect import task, flow
 from pathlib import Path
 
 
-book_folder_paths = [
-    "sample_data/rak-0018_baris-002_buku-12",
-    "sample_data/rak-0003_baris-005_buku-30",
-]
+
+
+book_folder = Path("sample_data")
+# retrieve all subfolders in the book_folder
+book_folder_paths = [str(folder) for folder in book_folder.iterdir() if folder.is_dir()]
+print(f"Found {len(book_folder_paths)} book folders for inference.")
+
 output_folder_path = "data/output_book_data"
 lance_db_uri = Path("data/test/lance_db_semi_prod")
 table_name = "pararel_test_new"
