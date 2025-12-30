@@ -17,10 +17,12 @@ from baml_client.types import (
 
 # --- lanceDB modules
 from lancedb import connect
+import pyarrow as pa
 
 # ---- import modules for the prefect functionalities
 from prefect import flow, task
 from prefect.logging import get_run_logger
+from prefect.cache_policies import NO_CACHE
 
 # ---- misc modules
 from dotenv import load_dotenv
@@ -474,7 +476,7 @@ def prepare_data_for_ingestion(
 
 
 # lanceDB ingestion phases
-@task
+@task(cache_policy=NO_CACHE)
 def ingest_to_lance_db(
     active_lance_db, table_name: str, tobe_ingested_data: AggregatedtoLanceOutput
 ):
@@ -483,11 +485,13 @@ def ingest_to_lance_db(
     writes it into the specified LanceDB table. The table has to be pre-created with the
     appropriate schema that matches the AggregatedtoLanceOutput structure.
 
+    This function explicitly converts the Pydantic model to a PyArrow Table with the
+    correct schema to avoid type inference issues with nested structs.
+
     Args:
         active_lance_db: The LanceDB connection.
         table_name: The name of the table.
         tobe_ingested_data: The data to ingest.
-        mode: The write mode ('overwrite', 'append', etc.).
 
     Returns:
         Any: The table object.
@@ -504,8 +508,19 @@ def ingest_to_lance_db(
         lance_table = active_lance_db.open_table(table_name)
         logger.debug("Successfully opened LanceDB table: %s", table_name)
 
-        # Add the data to the table
-        lance_table.add([tobe_ingested_data.model_dump()])
+        # Convert the Pydantic model to a dictionary
+        data_dict = tobe_ingested_data.model_dump()
+
+        # Get the proper PyArrow schema for our model
+        # This ensures nested Pydantic models are correctly converted to struct types
+        arrow_schema = pydantic_to_arrow_schema(AggregatedtoLanceOutput)
+
+        # Create a PyArrow Table with the explicit schema
+        # This prevents PyArrow from incorrectly inferring nested types
+        pa_table = pa.Table.from_pylist([data_dict], schema=arrow_schema)
+
+        # Add the properly-typed PyArrow Table to LanceDB
+        lance_table.add(pa_table)
         logger.info(
             "Successfully ingested data - Book ID: %s, Table: %s",
             tobe_ingested_data.book_id,
@@ -524,7 +539,8 @@ def ingest_to_lance_db(
 
 
 # run the environment setup phase only once in the place where the flow is being called
-@flow
+
+
 def setup_phase_flow(uri: Path, lance_table_name: str) -> InitializedEnvironment:
     """
     Initialize the environment setup phase for the book processing pipeline.
@@ -537,12 +553,11 @@ def setup_phase_flow(uri: Path, lance_table_name: str) -> InitializedEnvironment
     Returns:
         InitializedEnvironment: Initialized environment with all necessary components.
     """
-    logger = get_run_logger()
-    logger.info("Starting environment setup phase flow")
+    print("Starting environment setup phase flow")
 
     initiated_environment = initiate_environment(uri, lance_table_name)
 
-    logger.info("Environment setup phase completed successfully")
+    print("Environment setup phase completed successfully")
     return initiated_environment
 
 
@@ -619,7 +634,7 @@ def single_book_flow(
     logger.info("========== Phase 5: LanceDB Ingestion ==========")
     ingest_to_lance_db(
         environment.active_lance_db, environment.lance_table_name, aggregated_output
-    ) # pyright: ignore[reportUnusedCoroutine]
+    )  # pyright: ignore[reportUnusedCoroutine]
 
     logger.info("========== Single Book Flow Completed Successfully ==========")
     logger.info(
@@ -630,11 +645,8 @@ def single_book_flow(
     return None
 
 
-@flow
 def example_run():
     """Example flow demonstrating single book processing."""
-    logger = get_run_logger()
-    logger.info("========== Starting Example Run ==========")
 
     lance_db_path = Path("data/lance_db_test")
     lance_table_name = "books_test_table"
@@ -642,20 +654,11 @@ def example_run():
         "D:/projects/ambarawa_retrieval_prod/sample_data/rak-0003_baris-005_buku-30"
     )
 
-    logger.info("Configuration:")
-    logger.info("  - LanceDB Path: %s", lance_db_path)
-    logger.info("  - Table Name: %s", lance_table_name)
-    logger.info("  - Input Book: %s", input_book_folder_path)
-
-    logger.info("Initializing environment...")
     setup_phase_flow_instance = setup_phase_flow(lance_db_path, lance_table_name)
-
-    logger.info("Starting single book processing...")
     single_book_flow(
         setup_phase_flow_instance, str(input_book_folder_path), "data/output"
     )
 
-    logger.info("========== Example Run Completed Successfully ==========")
     return None
 
 

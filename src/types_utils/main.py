@@ -44,7 +44,6 @@ BAML Compatibility:
 from __future__ import annotations
 
 import inspect
-from os import name
 import sys
 import types
 from datetime import date, datetime
@@ -302,7 +301,7 @@ def pydantic_type_to_arrow_type(
     return _python_type_to_arrow_type(tp, field)  # type: ignore[arg-type]
 
 
-def _is_nullable_field(field: FieldInfo) -> bool:
+def _is_nullable_field(field: FieldInfo, resolved_type: Optional[Type] = None) -> bool:
     """
     Determine if a Pydantic field is nullable.
 
@@ -310,16 +309,24 @@ def _is_nullable_field(field: FieldInfo) -> bool:
     - It's annotated as Optional[T] (i.e., Union[T, None])
     - It uses Python 3.10+ union syntax with None (T | None)
     - It's a LanceDB Vector type with nullable=True
+    - The field has a default value of None
 
     Args:
         field: The Pydantic FieldInfo to check.
+        resolved_type: Optional pre-resolved type hint (from get_type_hints).
+                      If provided, this takes precedence over field.annotation.
 
     Returns:
         True if the field is nullable, False otherwise.
     """
-    annotation = field.annotation
+    # Use resolved_type if provided, otherwise fall back to field.annotation
+    annotation = resolved_type if resolved_type is not None else field.annotation
 
-    # Handle generic aliases (Union, Optional)
+    # Check if the field has a default value of None (indicates nullable)
+    if field.default is None and field.is_required() is False:
+        return True
+
+    # Handle generic aliases (Union, Optional) - typing.Optional[T] = Union[T, None]
     if isinstance(annotation, (_GenericAlias, GenericAlias)):
         origin = getattr(annotation, "__origin__", None)
         args = getattr(annotation, "__args__", ())
@@ -364,7 +371,8 @@ def _pydantic_field_to_arrow_field(
     # Use resolved type if provided, otherwise use field annotation
     type_to_convert = resolved_type if resolved_type is not None else field.annotation
     arrow_type = pydantic_type_to_arrow_type(type_to_convert, field)
-    nullable = _is_nullable_field(field)
+    # Pass resolved_type to _is_nullable_field for proper nullability detection
+    nullable = _is_nullable_field(field, resolved_type)
     return pa.field(name, arrow_type, nullable=nullable)
 
 
@@ -510,4 +518,5 @@ PYTHON_TO_ARROW_TYPE_MAP: Dict[type, pa.DataType] = {
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
