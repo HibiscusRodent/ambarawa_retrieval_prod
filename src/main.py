@@ -41,16 +41,34 @@ def run_single_inference(
 def main_inference_multiple_books(
     book_folder_paths: list[str],
     output_folder_path: str,
+    batch_size: int = 5,
 ) -> None:
     """
-    Run inference on multiple books and store results in LanceDB.
+    Run inference on multiple books in parallel batches and store results in LanceDB.
+    
+    Args:
+        book_folder_paths: List of paths to book folders.
+        output_folder_path: Path where output data will be saved.
+        batch_size: Number of books to process in parallel at once (default: 5).
     """
-    for book_folder_path in book_folder_paths:
-        run_single_inference(
-            setup_instance=setup_instance,
-            book_folder_path=book_folder_path,
-            output_folder_path=output_folder_path,
-        )
+    # Process books in batches to limit concurrent executions
+    for i in range(0, len(book_folder_paths), batch_size):
+        batch = book_folder_paths[i:i + batch_size]
+        futures = []
+        
+        # Submit all tasks in the batch for parallel execution
+        for book_folder_path in batch:
+            future = run_single_inference.submit(
+                setup_instance=setup_instance,
+                book_folder_path=book_folder_path,
+                output_folder_path=output_folder_path,
+            )
+            futures.append(future)
+        
+        # Wait for all tasks in the current batch to complete before starting the next batch
+        for future in futures:
+            future.wait()
+    
     return None
 
 
