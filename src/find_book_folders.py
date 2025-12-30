@@ -204,7 +204,7 @@ def main() -> pl.DataFrame:
             paths to directories with image/PDF files and their contents.
     """
     # You can add test code here or modify as needed
-    test_folder = ""  # Current directory for testing
+    test_folder = "E:\\ambarawa_books_new\\database_main_25K"  # Current directory for testing
     output_path = "data/book_folder_list.parquet"
     result_df = finding_book_folder(test_folder, output_parquet_path=output_path)
     return result_df
