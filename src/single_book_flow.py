@@ -228,7 +228,7 @@ def analyze_book_condition(
             str(e),
             type(e).__name__,
         )
-    return BookConditionData.model_construct()
+        raise  # Re-raise to properly propagate the error
 
 
 @task
@@ -269,7 +269,7 @@ def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnaly
             str(e),
             type(e).__name__,
         )
-    return RawAnalysis.model_construct()
+        raise  # Re-raise to properly propagate the error
 
 
 @task
@@ -314,7 +314,7 @@ def analyze_content_hints(
             str(e),
             type(e).__name__,
         )
-        return BookContentHints.model_construct()
+        raise  # Re-raise to properly propagate the error
 
 
 @task
@@ -360,7 +360,7 @@ def analyze_main_data(
             str(e),
             type(e).__name__,
         )
-        return BookMainData.model_construct()
+        raise  # Re-raise to properly propagate the error
 
 
 @task
@@ -407,7 +407,7 @@ def analyze_publisher_details(
             str(e),
             type(e).__name__,
         )
-        return BookPubAndDistDetails.model_construct()
+        raise  # Re-raise to properly propagate the error
 
 
 @task
@@ -587,9 +587,8 @@ def single_book_flow(
         baml_images, book_id, output_book_folder
     )
 
-    raw_analysis_data_json = run_raw_analysis(
-        baml_images, book_id, output_book_folder
-    ).model_dump_json()
+    raw_analysis_data = run_raw_analysis(baml_images, book_id, output_book_folder)
+    raw_analysis_data_json = raw_analysis_data.model_dump_json()
 
     # Phase 3: Second BAML Inference (dependent on raw analysis)
     logger.info("========== Phase 3: Second BAML Inference ==========")
@@ -610,7 +609,7 @@ def single_book_flow(
         book_id=book_id,
         binary_images=image_data.binary_images,
         book_condition_data=book_condition_data,
-        raw_analysis_data=RawAnalysis.model_validate_json(raw_analysis_data_json),
+        raw_analysis_data=raw_analysis_data,
         content_hints_data=contetent_hints_data,
         main_data=main_data,
         publisher_details_data=publisher_details_data,
