@@ -3,6 +3,14 @@
 import shutil
 from image_processings import ImageProcessors
 from types_definition import ProcessedBookImageData, AggregatedtoLanceOutput
+from baml_client.sync_client import b
+from baml_client.types import (
+    BookConditionData,
+    RawAnalysis,
+    BookContentHints,
+    BookMainData,
+    BookPubAndDistDetails
+)
 
 # ---- import modules for the prefect functionalities
 from prefect import flow, task
@@ -12,6 +20,8 @@ from prefect.logging import get_run_logger
 from dotenv import load_dotenv
 from rich.traceback import install
 from pathlib import Path
+
+logger = get_run_logger()
 
 
 @task
@@ -95,13 +105,48 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
     Returns:
         ProcessedBookImageData: A data class containing processed images and book ID.
     """
-    logger = get_run_logger()
     image_data: ProcessedBookImageData = image_processor.process_book_folder(Path(folder_path))
     logger.info(f"Processed book with id of: {image_data.book_id}")
     logger.info(f"Got a total of {len(image_data.binary_images)} images")
     return image_data
+
+# baml inference tasks
+def analyze_book_condition(baml_images, book_id: str, output_folder: Path) -> BookConditionData:
+    """
+    Analyze the book condition using BAML client and return the BookConditionData.
+    
+    Args:
+        baml_images: List of BAML-compatible images for analysis.
+        book_id: The ID of the book being analyzed.
+        output_folder: Path to the folder where output data will be saved.
         
-@flow
+    Returns:
+        BookConditionData: The analyzed book condition data.
+    """
+    try:
+        logger.info("Starting book condition analysis for Book ID: %s", book_id)
+        data = b.GetBookConditionData(MultiImages=baml_images, bookId=book_id)
+        save_to_json(data, output_folder / f"{book_id}_book_condition_data.json")
+
+        logger.info(
+            "Analyzed book condition - Book ID: %s, Condition: %s, Print Type: %s",
+            book_id,
+            data.Condition,
+            data.PrintType,
+        )
+        return data
+    except Exception as e:
+        logger.exception(
+            "Failed to analyze book condition - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )    
+    return BookConditionData.model_construct()
+    
+    
+
+# run the environment setup phase only once in the place where the flow is being called        
 def setup_phase_flow():
     # the environment setup phase should happen only once in the entire pararllel flow run
     initiated_environment = initiate_environment() # intiate environment
@@ -118,5 +163,12 @@ def single_book_flow(initiated_environment, input_book_folder_path: str, output_
     # begin image processing
     image_data = process_image_folder(environment.image_processors, str(book_folder)) # process the book folder to get images data
     save_binary_images_to_disk(image_data, output_book_folder) # save the binary images to disk
+    
+    # main BAML inference phase
+    baml_images = image_data.baml_images  # extract baml images from the processed image data
+    book_id = image_data.book_id  # extract book id from the processed image
+    
+    analyze_book_condition(baml_images, book_id, output_book_folder)
+    
     
     return None

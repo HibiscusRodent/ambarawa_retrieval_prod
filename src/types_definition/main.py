@@ -39,6 +39,11 @@ class AggregatedtoLanceOutput(BaseModel):
     based inference results.
     """
     book_id: str
+    images_data: list[bytes]
+    book_title: BookMainData.authors
+    
+    
+    
     book_condition_data: BookConditionData
     raw_analysis: RawAnalysis
     book_content_hints: BookContentHints
