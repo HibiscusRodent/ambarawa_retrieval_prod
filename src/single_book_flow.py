@@ -111,6 +111,7 @@ def process_image_folder(image_processor: ImageProcessors, folder_path: str):
     return image_data
 
 # baml inference tasks
+@task
 def analyze_book_condition(baml_images, book_id: str, output_folder: Path) -> BookConditionData:
     """
     Analyze the book condition using BAML client and return the BookConditionData.
@@ -143,6 +144,63 @@ def analyze_book_condition(baml_images, book_id: str, output_folder: Path) -> Bo
             type(e).__name__,
         )    
     return BookConditionData.model_construct()
+
+@task
+def run_raw_analysis(baml_images, book_id: str, output_folder: Path) -> RawAnalysis:
+    Performs raw visual analysis on a book using BAML images and returns a RawAnalysis object.
+    This function uses the BAML client to analyze the provided images for the given book ID,
+    extracting details such as cover and back cover descriptions. The analysis results are
+    saved as a JSON file in the specified output folder for future reference and further
+    processing. On success, it logs the analysis outcome; on failure, it logs the error
+    and returns a default-constructed RawAnalysis object.
+        baml_images: A list of BAML-compatible images to be analyzed.
+        book_id (str): The unique identifier of the book being analyzed.
+        output_folder (Path): The directory path where the JSON output file will be saved.
+        RawAnalysis: The resulting analysis data. If an error occurs, a default
+        RawAnalysis instance is returned using model_construct().
+    Raises:
+        Logs exceptions internally but does not raise them; instead, returns a default object.
+    """
+    Infer the visual raw analysis of the book using BAML client and return the RawAnalysis.
+    The results of the analysis will be used in further processing steps as a way to enrich the book data.
+    The resulting outoput will also be saved to disk as a JSON file for future reference,
+    and into the main dataframe aggregation down the line.
+    
+    Args:
+        baml_images: List of BAML-compatible images for analysis.
+        book_id: The ID of the book being analyzed.
+        output_folder: Path to the folder where output data will be saved.
+        
+    Returns:
+        RawAnalysis: The analyzed raw analysis data.
+    """
+    try:
+        logger.info("Starting book condition analysis for Book ID: %s", book_id)
+        raw_analysis_data = b.GetBookrawVisual(MultiImages = baml_images, bookId=book_id)
+        save_to_json(raw_analysis_data, output_folder / f"{book_id}_book_condition_data.json")
+
+        logger.info(
+            "Analyzed raw visual analysis - Book ID: %s, Condition: %s, Print Type: %s",
+            book_id,
+            bool(raw_analysis_data.coverPageDescription),
+            bool(raw_analysis_data.backCoverDescription),
+        )
+        return raw_analysis_data
+    except Exception as e:
+        logger.exception(
+            "Failed to analyze raw visual analysis - Book ID: %s, Error: %s (Exception type: %s)",
+            book_id,
+            str(e),
+            type(e).__name__,
+        )    
+    return RawAnalysis.model_construct()
+    
+
+# run the environment setup phase only once in the place where the flow is being called        
+def setup_phase_flow():
+    # the environment setup phase should happen only once in the entire pararllel flow run
+    initiated_environment = initiate_environment() # intiate environment
+    return initiated_environment
     
     
 
