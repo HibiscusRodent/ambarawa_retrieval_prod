@@ -420,18 +420,26 @@ def single_book_flow(
     book_id = image_data.book_id  # extract book id from the processed image
 
     # first phase of the inference, the two runs in parallel
-    analyze_book_condition(baml_images, book_id, output_book_folder)
-    raw_analysis_data_json = run_raw_analysis(
-        baml_images, book_id, output_book_folder
-    ).model_dump_json()
+    book_condition_data = analyze_book_condition(baml_images, book_id, output_book_folder)
+    
+    raw_analysis_data_json = run_raw_analysis(baml_images, book_id, output_book_folder).model_dump_json()
 
     # second phase of the inference, dependent on the raw analysis result
     # the three analysis runs in parallel
-    analyze_content_hints(
-        baml_images, book_id, raw_analysis_data_json, output_book_folder
+    contetent_hints_data = analyze_content_hints(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    main_data = analyze_main_data(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    publisher_details_data = analyze_publisher_details(baml_images, book_id, raw_analysis_data_json, output_book_folder)
+    
+    # construct aggregated data for ingestion
+    aggregated_output = prepare_data_for_ingestion(
+        book_id=book_id,
+        binary_images=image_data.binary_images,
+        book_condition_data=book_condition_data,
+        raw_analysis_data=RawAnalysis.model_validate_json(raw_analysis_data_json),
+        content_hints_data=contetent_hints_data,
+        main_data=main_data,
+        publisher_details_data=publisher_details_data,
     )
-    analyze_main_data(baml_images, book_id, raw_analysis_data_json, output_book_folder)
-    analyze_publisher_details(
-        baml_images, book_id, raw_analysis_data_json, output_book_folder
-    )
+    
+    
     return None
