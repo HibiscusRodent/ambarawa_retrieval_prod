@@ -1,6 +1,7 @@
 import single_book_flow as single_inf
 from single_book_flow import InitializedEnvironment
 from prefect import task, flow
+from prefect.cache_policies import NO_CACHE
 from pathlib import Path
 
 
@@ -18,7 +19,7 @@ table_name = "pararel_test_new"
 setup_instance = single_inf.setup_phase_flow(lance_db_uri, table_name)
 
 
-@task
+@task(cache_policy=NO_CACHE)
 def run_single_inference(
     setup_instance: InitializedEnvironment,
     book_folder_path: str,
